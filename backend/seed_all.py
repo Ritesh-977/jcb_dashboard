@@ -6,6 +6,7 @@ import asyncio
 import asyncpg
 import json
 import os
+from datetime import date
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -21,6 +22,8 @@ async def main():
         database=os.getenv("DB_NAME"),
         user=os.getenv("DB_USER"),
         password=os.getenv("DB_PASSWORD"),
+        ssl="require",
+        statement_cache_size=0,
     )
 
     # --- kpi_summary ---
@@ -52,7 +55,7 @@ async def main():
            ("Date","Campaign Name","Market","Platform","Source","Post Content",
             "Post Link","Likes","Comments Count","Shares","Total Engagement","Post Sentiment")
            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)''',
-        [(r["Date"], r.get("Campaign Name"), r.get("Market"), r.get("Platform"),
+        [(date.fromisoformat(r["Date"]), r.get("Campaign Name"), r.get("Market"), r.get("Platform"),
           json.dumps(r.get("Source")), r.get("Post Content"), r.get("Post Link"),
           r.get("Likes", 0), r.get("Comments Count", 0), r.get("Shares", 0),
           r.get("Total Engagement", 0), r.get("Post Sentiment")) for r in posts]
@@ -66,7 +69,7 @@ async def main():
         '''INSERT INTO comment_data
            ("Date","Platform","Post Link","Comment Text","Sentiment","Keyword Tag","Keyword Type")
            VALUES ($1,$2,$3,$4,$5,$6,$7)''',
-        [(r["Date"], r["Platform"], r["Post Link"], r["Comment Text"],
+        [(date.fromisoformat(r["Date"]), r["Platform"], r["Post Link"], r["Comment Text"],
           r["Sentiment"], r["Keyword Tag"], r.get("Keyword Type", "")) for r in comments]
     )
     print(f"✓ comment_data seeded ({len(comments)} rows)")

@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import FacebookComments from '../components/FacebookComments';
 import InstagramComments from '../components/InstagramComments';
-
-const API_BASE = 'http://localhost:8000';
+import { apiFetch } from '../api';
 
 export default function CommentsDashboard() {
   const [comments, setComments] = useState([]);
@@ -20,13 +19,7 @@ export default function CommentsDashboard() {
         if (platform) params.append('platform', platform);
         if (sentiment) params.append('sentiment', sentiment);
 
-        const token = localStorage.getItem('access_token');
-        const res = await fetch(`${API_BASE}/comments/?${params}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (!res.ok) throw new Error(`Error ${res.status}: ${res.statusText}`);
-        const data = await res.json();
+        const data = await apiFetch(`/comments/?${params}`);
         setComments(data);
       } catch (err) {
         setError(err.message);

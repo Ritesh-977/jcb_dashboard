@@ -17,6 +17,8 @@ async def main():
         database=os.getenv("DB_NAME"),
         user=os.getenv("DB_USER"),
         password=os.getenv("DB_PASSWORD"),
+        ssl="require",
+        statement_cache_size=0,
     )
 
     # Show existing tables
@@ -24,6 +26,17 @@ async def main():
         SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename
     """)
     print("Existing tables:", [r['tablename'] for r in rows])
+
+    # Create users if missing
+    await conn.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            email VARCHAR(255) UNIQUE NOT NULL,
+            password_hash VARCHAR(255) NOT NULL,
+            role VARCHAR(50) NOT NULL DEFAULT 'viewer'
+        )
+    """)
+    print("✓ users ready")
 
     # Create kpi_summary if missing
     await conn.execute("""

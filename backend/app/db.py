@@ -17,6 +17,8 @@ async def get_pool():
             password=os.getenv("DB_PASSWORD"),
             min_size=1,
             max_size=10,
+            ssl="require",
+            statement_cache_size=0,
         )
     return _pool
 
