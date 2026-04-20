@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
-
-const API_BASE = 'http://localhost:8000';
+import { apiFetch } from '../api';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -18,13 +17,10 @@ export default function Login() {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`${API_BASE}/auth/login`, {
+      const data = await apiFetch('/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || 'Login failed');
       localStorage.setItem('access_token', data.access_token);
       localStorage.setItem('isAuthenticated', 'true');
       navigate('/');
