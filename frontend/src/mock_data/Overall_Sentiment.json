@@ -1,0 +1,22 @@
+[
+ {
+   "Platform": "Facebook",
+   "Positive": 12,
+   "Neutral": 6,
+   "Negative": 5,
+   "Total": 23,
+   "% Positive": 0.52173913,
+   "% Neutral": 0.260869565,
+   "% Negative": 0.217391304
+ },
+ {
+   "Platform": "Instagram",
+   "Positive": 10,
+   "Neutral": 4,
+   "Negative": 1,
+   "Total": 15,
+   "% Positive": 0.666666667,
+   "% Neutral": 0.266666667,
+   "% Negative": 0.066666667
+ }
+]

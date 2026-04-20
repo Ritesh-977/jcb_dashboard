@@ -1,0 +1,209 @@
+[
+ {
+   "Date": "2026-04-01",
+   "Platform": "Facebook",
+   "Post Link": "fb.com/post1",
+   "Comment Text": "Love this cashback promo",
+   "Sentiment": "Positive",
+   "Keyword Tag": "Worth it",
+   "Keyword Type": "Positive"
+ },
+ {
+   "Date": "2026-04-01",
+   "Platform": "Facebook",
+   "Post Link": "fb.com/post1",
+   "Comment Text": "What�s the cap limit?",
+   "Sentiment": "Neutral",
+   "Keyword Tag": "Cap limit",
+   "Keyword Type": "Neutral"
+ },
+ {
+   "Date": "2026-04-02",
+   "Platform": "Instagram",
+   "Post Link": "ig.com/post2",
+   "Comment Text": "Perfect for travel",
+   "Sentiment": "Positive",
+   "Keyword Tag": "Worth it",
+   "Keyword Type": "Positive"
+ },
+ {
+   "Date": "2026-04-02",
+   "Platform": "Instagram",
+   "Post Link": "ig.com/post2",
+   "Comment Text": "Minimum spend?",
+   "Sentiment": "Neutral",
+   "Keyword Tag": "Min spend",
+   "Keyword Type": "Neutral"
+ },
+ {
+   "Date": "2026-04-03",
+   "Platform": "Facebook",
+   "Post Link": "fb.com/post3",
+   "Comment Text": "Confusing mechanics",
+   "Sentiment": "Negative",
+   "Keyword Tag": "Confusing",
+   "Keyword Type": "Negative"
+ },
+ {
+   "Date": "2026-04-03",
+   "Platform": "Facebook",
+   "Post Link": "fb.com/post3",
+   "Comment Text": "Good deal though",
+   "Sentiment": "Positive",
+   "Keyword Tag": "Good",
+   "Keyword Type": "Positive"
+ },
+ {
+   "Date": "2026-04-05",
+   "Platform": "Facebook",
+   "Post Link": "fb.com/post5",
+   "Comment Text": "Already sold out",
+   "Sentiment": "Negative",
+   "Keyword Tag": "Soldout",
+   "Keyword Type": "Negative"
+ },
+ {
+   "Date": "2026-04-05",
+   "Platform": "Facebook",
+   "Post Link": "fb.com/post5",
+   "Comment Text": "Worth it honestly",
+   "Sentiment": "Positive",
+   "Keyword Tag": "Worth it",
+   "Keyword Type": "Positive"
+ },
+ {
+   "Date": "2026-04-06",
+   "Platform": "Instagram",
+   "Post Link": "ig.com/post6",
+   "Comment Text": "Looks so good",
+   "Sentiment": "Positive",
+   "Keyword Tag": "Good",
+   "Keyword Type": "Positive"
+ },
+ {
+   "Date": "2026-04-06",
+   "Platform": "Instagram",
+   "Post Link": "ig.com/post6",
+   "Comment Text": "Still confusing",
+   "Sentiment": "Negative",
+   "Keyword Tag": "Confusing",
+   "Keyword Type": "Negative"
+ },
+ {
+   "Date": "2026-04-07",
+   "Platform": "Facebook",
+   "Post Link": "fb.com/post7",
+   "Comment Text": "Cap too low",
+   "Sentiment": "Negative",
+   "Keyword Tag": "Cap limit",
+   "Keyword Type": "Negative"
+ },
+ {
+   "Date": "2026-04-07",
+   "Platform": "Facebook",
+   "Post Link": "fb.com/post7",
+   "Comment Text": "Still decent",
+   "Sentiment": "Positive",
+   "Keyword Tag": "Worth it",
+   "Keyword Type": "Positive"
+ },
+ {
+   "Date": "2026-04-09",
+   "Platform": "Facebook",
+   "Post Link": "fb.com/post9",
+   "Comment Text": "Minimum spend too high",
+   "Sentiment": "Negative",
+   "Keyword Tag": "Min spend",
+   "Keyword Type": "Negative"
+ },
+ {
+   "Date": "2026-04-09",
+   "Platform": "Facebook",
+   "Post Link": "fb.com/post9",
+   "Comment Text": "Okay for big spenders",
+   "Sentiment": "Neutral",
+   "Keyword Tag": "Eligibility",
+   "Keyword Type": "Neutral"
+ },
+ {
+   "Date": "2026-04-10",
+   "Platform": "Instagram",
+   "Post Link": "ig.com/post10",
+   "Comment Text": "Love JCB perks",
+   "Sentiment": "Positive",
+   "Keyword Tag": "Good",
+   "Keyword Type": "Positive"
+ },
+ {
+   "Date": "2026-04-10",
+   "Platform": "Instagram",
+   "Post Link": "ig.com/post10",
+   "Comment Text": "Can use overseas?",
+   "Sentiment": "Neutral",
+   "Keyword Tag": "Eligibility",
+   "Keyword Type": "Neutral"
+ },
+ {
+   "Date": "2026-04-11",
+   "Platform": "Facebook",
+   "Post Link": "fb.com/post11",
+   "Comment Text": "Great savings",
+   "Sentiment": "Positive",
+   "Keyword Tag": "Worth it",
+   "Keyword Type": "Positive"
+ },
+ {
+   "Date": "2026-04-13",
+   "Platform": "Facebook",
+   "Post Link": "fb.com/post13",
+   "Comment Text": "Coffee deal nice",
+   "Sentiment": "Positive",
+   "Keyword Tag": "Worth it",
+   "Keyword Type": "Positive"
+ },
+ {
+   "Date": "2026-04-14",
+   "Platform": "Instagram",
+   "Post Link": "ig.com/post14",
+   "Comment Text": "Smart spending",
+   "Sentiment": "Positive",
+   "Keyword Tag": "Good",
+   "Keyword Type": "Positive"
+ },
+ {
+   "Date": "2026-04-15",
+   "Platform": "Facebook",
+   "Post Link": "fb.com/post15",
+   "Comment Text": "Too many conditions",
+   "Sentiment": "Negative",
+   "Keyword Tag": "Confusing",
+   "Keyword Type": "Negative"
+ },
+ {
+   "Date": "2026-04-17",
+   "Platform": "Instagram",
+   "Post Link": "ig.com/post17",
+   "Comment Text": "Not convinced",
+   "Sentiment": "Neutral",
+   "Keyword Tag": "Worth it",
+   "Keyword Type": "Neutral"
+ },
+ {
+   "Date": "2026-04-18",
+   "Platform": "Facebook",
+   "Post Link": "fb.com/post18",
+   "Comment Text": "Glad it's extended",
+   "Sentiment": "Positive",
+   "Keyword Tag": "Good",
+   "Keyword Type": "Positive"
+ },
+ {
+   "Date": "2026-04-20",
+   "Platform": "Instagram",
+   "Post Link": "ig.com/post20",
+   "Comment Text": "Rewards are great",
+   "Sentiment": "Positive",
+   "Keyword Tag": "Good",
+   "Keyword Type": "Positive"
+ }
+]

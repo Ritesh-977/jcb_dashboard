@@ -1,0 +1,242 @@
+[
+ {
+   "Date": "2026-04-01",
+   "Campaign Name": "Promotion X",
+   "Market": "PH",
+   "Platform": "Facebook",
+   "Source": {
+      "Page Name": "JCB Philippines"
+   },
+   "Post Content": "Enjoy cashback on dining with JCB cards!",
+   "Post Link": "fb.com/post1",
+   "Likes": 320,
+   "Comments Count": 45,
+   "Shares": 20,
+   "Total Engagement": 385,
+   "Post Sentiment": "Positive"
+},
+ {
+   "Date": "2026-04-02",
+   "Campaign Name": "Promotion X",
+   "Market": "PH",
+   "Platform": "Instagram",
+   "Source": {
+      "Page Name": "JCB Philippines"
+   },
+   "Post Content": "Travel more, spend less with JCB deals",
+   "Post Link": "ig.com/post2",
+   "Likes": 210,
+   "Comments Count": 30,
+   "Shares": 15,
+   "Total Engagement": 255,
+   "Post Sentiment": "Positive"
+},
+ {
+   "Date": "2026-04-03",
+   "Campaign Name": "Promotion X",
+   "Market": "PH",
+   "Platform": "Facebook",
+   "Source": {
+      "Page Name": "Partner Restaurant"
+   },
+   "Post Content": "Get 20% cashback with JCB",
+   "Post Link": "fb.com/post3",
+   "Likes": 150,
+   "Comments Count": 25,
+   "Shares": 10,
+   "Total Engagement": 185,
+   "Post Sentiment": "Neutral"
+},
+ {
+   "Date": "2026-04-05",
+   "Campaign Name": "Promotion X",
+   "Market": "PH",
+   "Platform": "Facebook",
+   "Source": {
+      "Page Name": "JCB Philippines"
+   },
+   "Post Content": "Limited cashback promo � don�t miss out",
+   "Post Link": "fb.com/post5",
+   "Likes": 280,
+   "Comments Count": 55,
+   "Shares": 18,
+   "Total Engagement": 353,
+   "Post Sentiment": "Neutral"
+},
+ {
+   "Date": "2026-04-06",
+   "Campaign Name": "Promotion X",
+   "Market": "PH",
+   "Platform": "Instagram",
+   "Source": {
+      "Page Name": "InfluencerPage"
+   },
+   "Post Content": "Dining deals using JCB",
+   "Post Link": "ig.com/post6",
+   "Likes": 400,
+   "Comments Count": 70,
+   "Shares": 22,
+   "Total Engagement": 492,
+   "Post Sentiment": "Positive"
+},
+ {
+   "Date": "2026-04-07",
+   "Campaign Name": "Promotion X",
+   "Market": "PH",
+   "Platform": "Facebook",
+   "Source": {
+      "Page Name": "JCB Philippines"
+   },
+   "Post Content": "Cashback capped at PHP500",
+   "Post Link": "fb.com/post7",
+   "Likes": 190,
+   "Comments Count": 40,
+   "Shares": 12,
+   "Total Engagement": 242,
+   "Post Sentiment": "Neutral"
+},
+ {
+   "Date": "2026-04-09",
+   "Campaign Name": "Promotion X",
+   "Market": "PH",
+   "Platform": "Facebook",
+   "Source": {
+      "Page Name": "JCB Philippines"
+   },
+   "Post Content": "Minimum spend applies",
+   "Post Link": "fb.com/post9",
+   "Likes": 120,
+   "Comments Count": 35,
+   "Shares": 8,
+   "Total Engagement": 163,
+   "Post Sentiment": "Neutral"
+},
+ {
+   "Date": "2026-04-10",
+   "Campaign Name": "Promotion X",
+   "Market": "PH",
+   "Platform": "Instagram",
+   "Source": {
+      "Page Name": "JCB Philippines"
+   },
+   "Post Content": "Dining, travel, rewards",
+   "Post Link": "ig.com/post10",
+   "Likes": 260,
+   "Comments Count": 28,
+   "Shares": 14,
+   "Total Engagement": 302,
+   "Post Sentiment": "Positive"
+},
+ {
+   "Date": "2026-04-11",
+   "Campaign Name": "Promotion X",
+   "Market": "PH",
+   "Platform": "Facebook",
+   "Source": {
+      "Page Name": "JCB Philippines"
+   },
+   "Post Content": "More savings with JCB cashback",
+   "Post Link": "fb.com/post11",
+   "Likes": 310,
+   "Comments Count": 50,
+   "Shares": 20,
+   "Total Engagement": 380,
+   "Post Sentiment": "Positive"
+},
+ {
+   "Date": "2026-04-13",
+   "Campaign Name": "Promotion X",
+   "Market": "PH",
+   "Platform": "Facebook",
+   "Source": {
+      "Page Name": "Partner Cafe"
+   },
+   "Post Content": "Coffee + cashback with JCB",
+   "Post Link": "fb.com/post13",
+   "Likes": 140,
+   "Comments Count": 22,
+   "Shares": 9,
+   "Total Engagement": 171,
+   "Post Sentiment": "Positive"
+},
+ {
+   "Date": "2026-04-14",
+   "Campaign Name": "Promotion X",
+   "Market": "PH",
+   "Platform": "Instagram",
+   "Source": {
+      "Page Name": "JCB Philippines"
+   },
+   "Post Content": "Shop smarter with JCB",
+   "Post Link": "ig.com/post14",
+   "Likes": 230,
+   "Comments Count": 27,
+   "Shares": 13,
+   "Total Engagement": 270,
+   "Post Sentiment": "Positive"
+},
+ {
+   "Date": "2026-04-15",
+   "Campaign Name": "Promotion X",
+   "Market": "PH",
+   "Platform": "Facebook",
+   "Source": {
+      "Page Name": "JCB Philippines"
+   },
+   "Post Content": "Don�t miss this exclusive offer",
+   "Post Link": "fb.com/post15",
+   "Likes": 270,
+   "Comments Count": 48,
+   "Shares": 17,
+   "Total Engagement": 335,
+   "Post Sentiment": "Positive"
+},
+ {
+   "Date": "2026-04-17",
+   "Campaign Name": "Promotion X",
+   "Market": "PH",
+   "Platform": "Instagram",
+   "Source": {
+      "Page Name": "InfluencerPage"
+   },
+   "Post Content": "Worth it or not? JCB review",
+   "Post Link": "ig.com/post17",
+   "Likes": 390,
+   "Comments Count": 72,
+   "Shares": 26,
+   "Total Engagement": 488,
+   "Post Sentiment": "Neutral"
+},
+ {
+   "Date": "2026-04-18",
+   "Campaign Name": "Promotion X",
+   "Market": "PH",
+   "Platform": "Facebook",
+   "Source": {
+      "Page Name": "JCB Philippines"
+   },
+   "Post Content": "Cashback promo extended",
+   "Post Link": "fb.com/post18",
+   "Likes": 300,
+   "Comments Count": 55,
+   "Shares": 21,
+   "Total Engagement": 376,
+   "Post Sentiment": "Positive"
+},
+ {
+   "Date": "2026-04-20",
+   "Campaign Name": "Promotion X",
+   "Market": "PH",
+   "Platform": "Instagram",
+   "Source": {
+      "Page Name": "JCB Philippines"
+   },
+   "Post Content": "Rewards made simple",
+   "Post Link": "ig.com/post20",
+   "Likes": 250,
+   "Comments Count": 30,
+   "Shares": 15,
+   "Total Engagement": 295,
+   "Post Sentiment": "Positive"
+}
+]

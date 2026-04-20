@@ -1,0 +1,34 @@
+[
+ {
+   "Metric": "Total Comments",
+   "Value": 23
+ },
+ {
+   "Metric": "Positive Comments",
+   "Value": 12
+ },
+ {
+   "Metric": "Negative Comments",
+   "Value": 6
+ },
+ {
+   "Metric": "Neutral Comments",
+   "Value": 5
+ },
+ {
+   "Metric": "Total Likes",
+   "Value": 3820
+ },
+ {
+   "Metric": "Net Sentiment %",
+   "Value": 0.260869565
+ },
+ {
+   "Metric": "Positive %",
+   "Value": 0.52173913
+ },
+ {
+   "Metric": "Negative %",
+   "Value": 0.260869565
+ }
+]
