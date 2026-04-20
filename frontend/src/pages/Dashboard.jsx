@@ -7,14 +7,15 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { apiFetch } from '../api';
 
 export default function Dashboard() {
+  const today = new Date();
   const [chartData, setChartData] = useState([]);
   const [kpiData, setKpiData] = useState([]);
   const [sentimentData, setSentimentData] = useState([]);
   const [totalInteractions, setTotalInteractions] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [dateFrom, setDateFrom] = useState(null);
-  const [dateTo, setDateTo] = useState(null);
+  const [dateFrom, setDateFrom] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
+  const [dateTo, setDateTo] = useState(today);
 
   const handleDateFromChange = (date) => {
     setDateFrom(date);
