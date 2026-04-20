@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import PromoCard from '../components/PromoCard';
 import ChartSection from '../components/ChartSection';
 import MetricsSection from '../components/MetricsSection';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import { apiFetch } from '../api';
 
 export default function Dashboard() {
@@ -11,12 +13,34 @@ export default function Dashboard() {
   const [totalInteractions, setTotalInteractions] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [dateFrom, setDateFrom] = useState(null);
+  const [dateTo, setDateTo] = useState(null);
+
+  const handleDateFromChange = (date) => {
+    setDateFrom(date);
+    // If from date is after to date, clear to date
+    if (dateTo && date > dateTo) {
+      setDateTo(null);
+    }
+  };
+
+  const handleDateToChange = (date) => {
+    // Only allow to date if it's after or equal to from date
+    if (!dateFrom || date >= dateFrom) {
+      setDateTo(date);
+    }
+  };
 
   useEffect(() => {
     const load = async () => {
       try {
+        const params = new URLSearchParams();
+        if (dateFrom) params.append('date_from', dateFrom.toISOString().split('T')[0]);
+        if (dateTo) params.append('date_to', dateTo.toISOString().split('T')[0]);
+        const query = params.toString() ? `?${params}` : '';
+
         const [posts, kpi, sentiment] = await Promise.all([
-          apiFetch('/dashboard/posts'),
+          apiFetch(`/dashboard/posts${query}`),
           apiFetch('/dashboard/kpi'),
           apiFetch('/dashboard/sentiment'),
         ]);
@@ -38,7 +62,7 @@ export default function Dashboard() {
       }
     };
     load();
-  }, []);
+  }, [dateFrom, dateTo]);
 
   if (loading) return <div className="p-8 text-gray-500 text-sm">Loading...</div>;
   if (error) return <div className="p-8 text-red-500 text-sm">Error: {error}</div>;
@@ -54,11 +78,47 @@ export default function Dashboard() {
             <div className="bg-[#f97316] text-white text-xs md:text-sm px-2 md:px-4 py-1.5 rounded-full font-medium whitespace-nowrap">
               Promo Period: 6 May – 29 July
             </div>
-            <div className="bg-white border border-gray-300 rounded-md px-2 md:px-4 py-1.5 text-xs md:text-sm text-gray-600 flex gap-2 md:gap-4 w-full sm:w-auto">
-              <span>06.05.25</span>
-              <span className="text-gray-400 hidden md:inline">to</span>
-              <span className="text-gray-400 md:hidden">-</span>
-              <span>29.07.2025</span>
+            <div className="bg-white border border-gray-300 rounded-md px-2 md:px-4 py-1.5 text-xs md:text-sm text-gray-600 flex gap-2 md:gap-4 w-full sm:w-auto items-center relative">
+              <div className="relative">
+                <DatePicker
+                  selected={dateFrom}
+                  onChange={handleDateFromChange}
+                  dateFormat="dd/MM/yyyy"
+                  placeholderText="From date"
+                  className="outline-none bg-transparent text-xs md:text-sm text-gray-600 w-24 pr-6"
+                  wrapperClassName="w-auto"
+                  maxDate={dateTo || undefined}
+                  showMonthDropdown
+                  showYearDropdown
+                  dropdownMode="select"
+                  yearDropdownItemNumber={10}
+                  scrollableYearDropdown
+                  popperPlacement="bottom-start"
+                />
+                <span className="absolute right-1 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs pointer-events-none">📅</span>
+              </div>
+              <span className="text-gray-400">–</span>
+              <div className="relative">
+                <DatePicker
+                  selected={dateTo}
+                  onChange={handleDateToChange}
+                  dateFormat="dd/MM/yyyy"
+                  placeholderText="To date"
+                  className="outline-none bg-transparent text-xs md:text-sm text-gray-600 w-24 pr-6"
+                  wrapperClassName="w-auto"
+                  minDate={dateFrom || undefined}
+                  showMonthDropdown
+                  showYearDropdown
+                  dropdownMode="select"
+                  yearDropdownItemNumber={10}
+                  scrollableYearDropdown
+                  popperPlacement="bottom-start"
+                />
+                <span className="absolute right-1 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs pointer-events-none">📅</span>
+              </div>
+              {(dateFrom || dateTo) && (
+                <button onClick={() => { setDateFrom(null); setDateTo(null); }} className="text-gray-400 hover:text-gray-600 text-xs ml-1">✕</button>
+              )}
             </div>
           </div>
           <div className="flex items-center justify-between gap-4 md:gap-6 w-full sm:w-auto">
@@ -79,7 +139,13 @@ export default function Dashboard() {
           />
           <div className="lg:col-span-8 flex flex-col gap-4">
             <ChartSection chartData={chartData} />
-            <MetricsSection kpiData={kpiData} sentimentData={sentimentData} />
+            {chartData.length === 0 && (dateFrom || dateTo) ? (
+              <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-100 text-center text-gray-400 text-sm">
+                No data available for the selected date range.
+              </div>
+            ) : (
+              <MetricsSection kpiData={kpiData} sentimentData={sentimentData} />
+            )}
           </div>
         </div>
       </div>
