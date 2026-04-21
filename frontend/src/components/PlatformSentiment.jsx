@@ -34,7 +34,7 @@ const StackedBarRow = ({ platform, positivePct, neutralPct, negativePct }) => (
 );
 
 const PlatformSentiment = ({ sentimentData }) => (
-  <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-100 flex flex-col h-full">
+  <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-300 flex flex-col h-full">
     <h3 className="text-xs md:text-sm font-bold text-gray-600 mb-4 md:mb-8">Platform Sentiment Distribution</h3>
 
     <div className="flex flex-col gap-3 md:gap-6 relative">

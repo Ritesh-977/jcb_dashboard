@@ -2,7 +2,7 @@ import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const SentimentTrendChart = ({ data }) => (
-  <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 h-full min-h-[500px] flex flex-col">
+  <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-300 h-full min-h-[500px] flex flex-col">
     <h3 className="text-sm font-bold text-gray-600 mb-6">Sentiment Trend</h3>
 
     <div className="flex-1 flex flex-col lg:flex-row items-stretch w-full">
@@ -10,7 +10,7 @@ const SentimentTrendChart = ({ data }) => (
       <div className="flex-1 w-full h-[450px]">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 20, right: 10, left: 0, bottom: 80 }}>
-            <CartesianGrid strokeDasharray="none" vertical={false} stroke="#e2e8f0" />
+            <CartesianGrid strokeDasharray="none" vertical={false} stroke="#cbd5e1" />
 
             <XAxis
               dataKey="date"

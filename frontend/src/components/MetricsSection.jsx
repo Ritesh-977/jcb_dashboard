@@ -20,7 +20,7 @@ const MetricsSection = ({ kpiData, sentimentData }) => {
   const totalShares = sentimentData.reduce((sum, row) => sum + (row.Total ?? 0), 0);
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-100 flex-1">
+    <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-300 flex-1">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-3 md:mb-4 gap-2 md:gap-0">
         <h3 className="text-xs md:text-sm font-bold text-gray-600">Key Performance Metrics</h3>
         <select className="border border-gray-300 rounded-md px-2 md:px-3 py-1 text-[10px] md:text-xs text-gray-400 bg-white outline-none w-full sm:w-auto">

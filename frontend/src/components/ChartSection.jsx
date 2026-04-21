@@ -2,7 +2,7 @@ import React from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const ChartSection = ({ chartData }) => (
-  <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-100">
+  <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-300">
     <h3 className="text-center text-xs md:text-sm font-bold text-gray-600 mb-4 md:mb-6">Engagement Metric Trend</h3>
     {chartData.length === 0 ? (
       <div className="h-[200px] md:h-[250px] flex items-center justify-center text-gray-400 text-sm">
@@ -12,7 +12,7 @@ const ChartSection = ({ chartData }) => (
       <div className="h-[200px] md:h-[250px] w-full">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={chartData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#cbd5e1" />
             <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 8, fill: '#6b7280' }} dy={10} />
             <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8, fill: '#6b7280' }} dx={-10} />
             <Tooltip />

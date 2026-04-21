@@ -14,7 +14,7 @@ const WordCloud = ({ words }) => (
 );
 
 const SentimentImpact = ({ positiveWords, negativeWords }) => (
-  <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-100 mt-4 md:mt-6">
+  <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-300 mt-4 md:mt-6">
     <h3 className="text-xs md:text-sm font-bold text-gray-600 mb-4 md:mb-6">Sentiments Impact Analysis</h3>
 
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 relative">
