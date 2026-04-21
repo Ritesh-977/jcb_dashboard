@@ -52,7 +52,7 @@ const Sidebar = () => {
 
   return (
     <aside
-      className={`bg-[#0b1d3d] text-white flex flex-col transition-all duration-300 min-h-screen ${
+      className={`bg-[#0b1d3d] text-white flex flex-col transition-all duration-300 h-full ${
         collapsed ? 'w-16' : 'w-56'
       }`}
     >
