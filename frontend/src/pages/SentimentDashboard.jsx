@@ -3,6 +3,7 @@ import SentimentBreakdowns from '../components/SentimentBreakdowns';
 import PlatformSentiment from '../components/PlatformSentiment';
 import SentimentImpact from '../components/SentimentImpact';
 import { apiFetch } from '../api';
+import S from '../components/Skeleton';
 
 const SIZE_SCALE = (count) => {
   if (count >= 5) return 'text-5xl';
@@ -69,7 +70,18 @@ export default function SentimentDashboard() {
     load();
   }, []);
 
-  if (loading) return <div className="p-8 text-gray-500 text-sm">Loading...</div>;
+  if (loading) return (
+    <div className="p-3 md:p-6 max-w-[1400px] mx-auto mt-2 md:mt-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+        <S className="h-64" />
+        <S className="h-64" />
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mt-4">
+        <S className="h-48" />
+        <S className="h-48" />
+      </div>
+    </div>
+  );
   if (error) return <div className="p-8 text-red-500 text-sm">Error: {error}</div>;
 
   return (

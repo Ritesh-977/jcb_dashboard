@@ -5,6 +5,7 @@ import MetricsSection from '../components/MetricsSection';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { apiFetch } from '../api';
+import S from '../components/Skeleton';
 
 export default function Dashboard() {
   const today = new Date();
@@ -65,7 +66,30 @@ export default function Dashboard() {
     load();
   }, [dateFrom, dateTo]);
 
-  if (loading) return <div className="p-8 text-gray-500 text-sm">Loading...</div>;
+  if (loading) return (
+    <div className="p-3 md:p-6 max-w-[1400px] mx-auto">
+      <div className="flex flex-col sm:flex-row items-center justify-between bg-white/50 p-3 md:p-4 rounded-t-xl gap-3">
+        <div className="flex gap-3 w-full sm:w-auto">
+          <S className="h-8 w-36" />
+          <S className="h-8 w-44" />
+          <S className="h-8 w-56" />
+        </div>
+        <div className="flex gap-4">
+          <S className="h-8 w-24" />
+          <S className="h-8 w-12" />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 mt-4">
+        <S className="lg:col-span-4 h-64" />
+        <div className="lg:col-span-8 flex flex-col gap-4">
+          <S className="h-64" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => <S key={i} className="h-24" />)}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
   if (error) return <div className="p-8 text-red-500 text-sm">Error: {error}</div>;
 
   return (

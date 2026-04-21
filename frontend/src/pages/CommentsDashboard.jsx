@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import FacebookComments from '../components/FacebookComments';
 import InstagramComments from '../components/InstagramComments';
 import { apiFetch } from '../api';
+import S from '../components/Skeleton';
 
 export default function CommentsDashboard() {
   const [comments, setComments] = useState([]);
@@ -60,7 +61,16 @@ export default function CommentsDashboard() {
         </select>
       </div>
 
-      {loading && <p className="text-gray-500 text-sm">Loading comments...</p>}
+      {loading && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="space-y-3">
+            {[...Array(5)].map((_, i) => <S key={i} className="h-32" />)}
+          </div>
+          <div className="space-y-3">
+            {[...Array(5)].map((_, i) => <S key={i} className="h-32" />)}
+          </div>
+        </div>
+      )}
       {error && <p className="text-red-500 text-sm">Failed to load: {error}</p>}
 
       {!loading && !error && (

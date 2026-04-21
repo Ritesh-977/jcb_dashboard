@@ -3,6 +3,7 @@ import SentimentTrendChart from '../components/SentimentTrendChart';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { apiFetch } from '../api';
+import S from '../components/Skeleton';
 
 export default function TrendDashboard() {
   const today = new Date();
@@ -63,7 +64,14 @@ export default function TrendDashboard() {
     load();
   }, [dateFrom, dateTo]);
 
-  if (loading) return <div className="p-8 text-gray-500 text-sm">Loading...</div>;
+  if (loading) return (
+    <div className="p-6 max-w-[1400px] mx-auto">
+      <div className="flex items-center bg-white/50 p-3 md:p-4 rounded-t-xl gap-3 mb-4">
+        <S className="h-8 w-56" />
+      </div>
+      <S className="h-[500px]" />
+    </div>
+  );
   if (error) return <div className="p-8 text-red-500 text-sm">Error: {error}</div>;
 
   return (
