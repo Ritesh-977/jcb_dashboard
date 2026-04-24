@@ -1,15 +1,12 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import Layout from './components/Layout';
-import ProtectedRoute, { AdminRoute, DashboardRoute } from './components/ProtectedRoute';
+import { DashboardRoute } from './components/ProtectedRoute';
 import Dashboard from './pages/Dashboard';
 import SentimentDashboard from './pages/SentimentDashboard';
 import CommentsDashboard from './pages/CommentsDashboard';
 import TrendDashboard from './pages/TrendDashboard';
 import Login from './pages/Login';
-import AdminLogin from './pages/AdminLogin';
-import AdminUsers from './pages/AdminUsers';
-import ChangePassword from './pages/ChangePassword';
 import AccessDenied from './pages/AccessDenied';
 
 function App() {
@@ -17,18 +14,9 @@ function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* Public */}
           <Route path="/login" element={<Login />} />
-          <Route path="/admin/login" element={<AdminLogin />} />
           <Route path="/unauthorized" element={<AccessDenied />} />
 
-          {/* Admin Portal */}
-          <Route element={<AdminRoute />}>
-            <Route path="/admin/users" element={<AdminUsers />} />
-            <Route path="/admin/change-password" element={<ChangePassword />} />
-          </Route>
-
-          {/* Dashboard (permission-gated) */}
           <Route element={<DashboardRoute requiredPermission="view_kpi" />}>
             <Route element={<Layout />}>
               <Route index element={<Dashboard />} />

@@ -22,10 +22,13 @@ app = FastAPI(title="JCB Dashboard API", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5174",
-        "http://localhost:5173",
+        "http://localhost:5173",  # dashboard (vite default)
+        "http://localhost:5174",  # dashboard (vite alt)
+        "http://localhost:5175",  # admin frontend
+        "http://localhost:5176",  # admin frontend (alt)
         "https://jcb-dashboard.vercel.app",
         os.getenv("FRONTEND_URL", ""),
+        os.getenv("ADMIN_FRONTEND_URL", ""),
     ],
     allow_credentials=True,
     allow_methods=["*"],
