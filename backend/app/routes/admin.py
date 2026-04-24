@@ -23,6 +23,10 @@ class UpdateUserRequest(BaseModel):
     is_active: Optional[bool] = None
 
 
+class ResetPasswordRequest(BaseModel):
+    new_password: str
+
+
 @router.get("/users")
 def list_users(page: int = 1, page_size: int = 20, _: dict = Depends(require_admin)):
     offset = (page - 1) * page_size
@@ -96,3 +100,18 @@ def update_user(user_id: int, body: UpdateUserRequest, current_admin: dict = Dep
         cur.execute(f"UPDATE USERS SET {', '.join(fields)} WHERE ID = %s", values)
         conn.commit()
     return {"message": "User updated"}
+
+
+@router.put("/users/{user_id}/reset-password")
+def reset_user_password(user_id: int, body: ResetPasswordRequest, current_admin: dict = Depends(require_admin)):
+    if str(user_id) == current_admin["sub"]:
+        raise HTTPException(status_code=400, detail="Use /auth/change-password to update your own password")
+    hashed = pwd_context.hash(body.new_password)
+    with get_snowflake_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT ID FROM USERS WHERE ID = %s", (user_id,))
+        if not cur.fetchone():
+            raise HTTPException(status_code=404, detail="User not found")
+        cur.execute("UPDATE USERS SET PASSWORD_HASH = %s WHERE ID = %s", (hashed, user_id))
+        conn.commit()
+    return {"message": "Password reset successfully"}

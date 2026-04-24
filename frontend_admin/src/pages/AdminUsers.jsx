@@ -47,6 +47,10 @@ export default function AdminUsers() {
   const [newUser, setNewUser] = useState(EMPTY_NEW_USER);
   const [creating, setCreating] = useState(false);
   const [modalError, setModalError] = useState('');
+  const [resetUser, setResetUser] = useState(null); // { id, email }
+  const [resetPwd, setResetPwd] = useState('');
+  const [resetting, setResetting] = useState(false);
+  const [resetMsg, setResetMsg] = useState('');
 
   const PAGE_SIZE = 20;
   const currentUserId = auth?.sub ? parseInt(auth.sub) : null;
@@ -99,6 +103,18 @@ export default function AdminUsers() {
       setShowCreate(false); setNewUser(EMPTY_NEW_USER); fetchUsers();
     } catch (err) { setModalError(err.message); }
     finally { setCreating(false); }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    if (!resetPwd.trim()) return;
+    setResetting(true); setResetMsg('');
+    try {
+      await apiFetch(`/admin/users/${resetUser.id}/reset-password`, { method: 'PUT', body: JSON.stringify({ new_password: resetPwd }) });
+      setResetMsg('Password reset successfully.');
+      setResetPwd('');
+    } catch (err) { setResetMsg(`Error: ${err.message}`); }
+    finally { setResetting(false); }
   };
 
   const totalAdmins = users.filter((u) => u.role === 'admin').length;
@@ -212,12 +228,21 @@ export default function AdminUsers() {
                           <button className="btn btn-ghost btn-sm" onClick={cancelEdit}>Cancel</button>
                         </div>
                       ) : (
-                        <button className="btn btn-ghost btn-sm" onClick={() => startEdit(user)}>
-                          <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                          </svg>
-                          Edit
-                        </button>
+                        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                          <button className="btn btn-ghost btn-sm" onClick={() => startEdit(user)}>
+                            <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            Edit
+                          </button>
+                          <button className="btn btn-sm" onClick={() => { setResetUser(user); setResetPwd(''); setResetMsg(''); }}
+                            style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}>
+                            <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                            </svg>
+                            Reset Pwd
+                          </button>
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -286,6 +311,57 @@ export default function AdminUsers() {
                 <button type="button" className="btn btn-ghost" onClick={() => { setShowCreate(false); setModalError(''); setNewUser(EMPTY_NEW_USER); }}>Cancel</button>
                 <button type="submit" className="btn btn-primary" disabled={creating}>
                   {creating ? <><Spinner /> Creating...</> : 'Create User'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+      {/* Reset Password Modal */}
+      {resetUser && (
+        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setResetUser(null)}>
+          <div className="modal">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h3 className="modal-title" style={{ margin: 0 }}>Reset Password</h3>
+              <button onClick={() => setResetUser(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '0.25rem' }}>
+                <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', background: '#f8fafc', border: '1px solid var(--border)', borderRadius: 8, padding: '0.65rem 0.85rem', marginBottom: '1.25rem' }}>
+              <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: '#1e40af', flexShrink: 0 }}>
+                {resetUser.email[0].toUpperCase()}
+              </div>
+              <div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)' }}>{resetUser.email}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>New password will take effect immediately</div>
+              </div>
+            </div>
+
+            <form onSubmit={handleResetPassword}>
+              <div className="form-field">
+                <label className="form-label">New Password</label>
+                <input className="form-input" type="password" required minLength={6}
+                  value={resetPwd} onChange={(e) => setResetPwd(e.target.value)}
+                  placeholder="Enter new password" autoFocus />
+              </div>
+              {resetMsg && (
+                <div className={`alert ${resetMsg.startsWith('Error') ? 'alert-error' : 'alert-success'}`}>
+                  {!resetMsg.startsWith('Error') && (
+                    <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" style={{ display: 'inline', marginRight: 4 }}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                  )}
+                  {resetMsg}
+                </div>
+              )}
+              <div className="modal-footer">
+                <button type="button" className="btn btn-ghost" onClick={() => setResetUser(null)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={resetting}>
+                  {resetting ? <><Spinner /> Resetting...</> : 'Reset Password'}
                 </button>
               </div>
             </form>
