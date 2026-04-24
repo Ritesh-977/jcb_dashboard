@@ -40,10 +40,16 @@ def init_connection_pool():
 @contextmanager
 def get_snowflake_connection():
     global _connection_pool
-    if _connection_pool is None:
+    try:
+        if _connection_pool is None or _connection_pool.is_closed():
+            init_connection_pool()
+        # Ping to detect stale connections and reconnect
+        _connection_pool.cursor().execute("SELECT 1")
+    except Exception:
+        print("Reconnecting to Snowflake...")
         init_connection_pool()
     try:
         yield _connection_pool
     except Exception as e:
         print(f"Database query failed: {e}")
-        raise HTTPException(status_code=500, detail="Database query failed")
+        raise HTTPException(status_code=500, detail=str(e))

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { apiFetch } from '../api';
+import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -10,19 +11,19 @@ export default function Login() {
   const [buttonHover, setButtonHover] = useState(false);
   const navigate = useNavigate();
 
-  if (localStorage.getItem('access_token')) return <Navigate to="/" replace />;
+  const { auth, login } = useAuth();
+  if (auth) return <Navigate to="/" replace />;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     try {
-      const data = await apiFetch('/auth/login', {
+      const data = await apiFetch('/auth/dashboard-login', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
       });
-      localStorage.setItem('access_token', data.access_token);
-      localStorage.setItem('isAuthenticated', 'true');
+      login(data.access_token);
       navigate('/');
     } catch (err) {
       setError(err.message);

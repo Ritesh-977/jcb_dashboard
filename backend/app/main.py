@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse
 from app.routes.auth import router as auth_router
 from app.routes.comments import router as comments_router
 from app.routes.dashboard import router as dashboard_router
+from app.routes.admin import router as admin_router
 from app.db import init_connection_pool
 
 @asynccontextmanager
@@ -22,6 +23,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5174",
+        "http://localhost:5173",
         "https://jcb-dashboard.vercel.app",
         os.getenv("FRONTEND_URL", ""),
     ],
@@ -33,6 +35,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(comments_router)
 app.include_router(dashboard_router)
+app.include_router(admin_router)
 
 @app.get("/health")
 async def health():
@@ -51,7 +54,7 @@ if os.path.exists(dist_path):
     app.mount("/assets", StaticFiles(directory=os.path.join(dist_path, "assets")), name="assets")
 
 # Catch-all route to serve index.html for React Router
-API_PREFIXES = ("api/", "auth/", "comments", "dashboard", "health")
+API_PREFIXES = ("api/", "auth/", "comments", "dashboard", "admin", "health")
 
 @app.get("/{full_path:path}")
 async def serve_react_app(full_path: str):

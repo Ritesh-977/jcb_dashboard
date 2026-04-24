@@ -1,52 +1,22 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const NAV_ITEMS = [
-  {
-    to: '/',
-    label: 'Campaign Overview',
-    icon: (
-      <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7m-9 2v8m4-8v8m5 0H4" />
-      </svg>
-    ),
-  },
-  {
-    to: '/sentiment',
-    label: 'Sentiment Analysis',
-    icon: (
-      <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    ),
-  },
-  {
-    to: '/comments',
-    label: 'Comments',
-    icon: (
-      <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 16c0 1.1-.9 2-2 2H7l-4 4V6a2 2 0 012-2h14a2 2 0 012 2v10z" />
-      </svg>
-    ),
-  },
-  {
-    to: '/trend',
-    label: 'Sentiment Trend',
-    icon: (
-      <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M7 12l3-3 3 3 4-4M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-      </svg>
-    ),
-  },
+  { to: '/',          label: 'Campaign Overview',  permission: 'view_kpi',       icon: <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7m-9 2v8m4-8v8m5 0H4" /></svg> },
+  { to: '/sentiment', label: 'Sentiment Analysis', permission: 'view_sentiment', icon: <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg> },
+  { to: '/comments',  label: 'Comments',           permission: 'view_comments',  icon: <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 16c0 1.1-.9 2-2 2H7l-4 4V6a2 2 0 012-2h14a2 2 0 012 2v10z" /></svg> },
+  { to: '/trend',     label: 'Sentiment Trend',    permission: 'view_trend',     icon: <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M7 12l3-3 3 3 4-4M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg> },
 ];
 
 const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
+  const { logout, auth } = useAuth();
+  const permissions = auth?.permissions ?? [];
 
   const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('isAuthenticated');
+    logout();
     navigate('/login');
   };
 
@@ -59,7 +29,7 @@ const Sidebar = () => {
       {/* Logo / Brand */}
       <div className="flex items-center justify-between px-4 py-4 border-b border-white/10">
         {!collapsed && (
-          <span className="text-sm font-bold tracking-wide text-white truncate">Sample Dashboard</span>
+          <span className="text-sm font-bold tracking-wide text-white truncate">JCB SENTIMENT Dashboard</span>
         )}
         <button
           onClick={() => setCollapsed((c) => !c)}
@@ -78,23 +48,34 @@ const Sidebar = () => {
 
       {/* Nav Links */}
       <nav className="flex flex-col gap-1 p-2 flex-1">
-        {NAV_ITEMS.map(({ to, label, icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                isActive
-                  ? 'bg-[#2bb5e8] text-white'
-                  : 'text-blue-200 hover:bg-white/10 hover:text-white'
-              }`
-            }
-          >
-            {icon}
-            {!collapsed && <span className="truncate">{label}</span>}
-          </NavLink>
-        ))}
+        {NAV_ITEMS.map(({ to, label, icon, permission }) => {
+          const allowed = permissions.includes(permission);
+          return allowed ? (
+            <NavLink
+              key={to}
+              to={to}
+              end
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                  isActive ? 'bg-[#2bb5e8] text-white' : 'text-blue-200 hover:bg-white/10 hover:text-white'
+                }`
+              }
+            >
+              {icon}
+              {!collapsed && <span className="truncate">{label}</span>}
+            </NavLink>
+          ) : (
+            <div
+              key={to}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium cursor-not-allowed"
+              style={{ color: '#4b5563', opacity: 0.5 }}
+              title="You don't have permission to access this page"
+            >
+              {icon}
+              {!collapsed && <span className="truncate">{label}</span>}
+            </div>
+          );
+        })}
       </nav>
 
       {/* Logout */}
