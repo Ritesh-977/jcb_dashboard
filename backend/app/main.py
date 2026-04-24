@@ -49,12 +49,13 @@ if os.path.exists(dist_path):
     app.mount("/assets", StaticFiles(directory=os.path.join(dist_path, "assets")), name="assets")
 
 # Catch-all route to serve index.html for React Router
+API_PREFIXES = ("api/", "auth/", "comments", "dashboard", "health")
+
 @app.get("/{full_path:path}")
 async def serve_react_app(full_path: str):
-    # Prevent this route from catching missing API endpoints
-    if full_path.startswith("api/"):
+    if full_path.startswith(API_PREFIXES):
         return {"error": "API route not found"}
-        
+
     index_file = os.path.join(dist_path, "index.html")
     if os.path.exists(index_file):
         return FileResponse(index_file)

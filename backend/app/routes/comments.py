@@ -19,39 +19,48 @@ def get_comments(
     params = []
 
     if platform:
-        conditions.append('"Platform" = %s')
+        conditions.append("PLATFORM = %s")
         params.append(platform)
     if sentiment:
-        conditions.append('"Sentiment" = %s')
+        conditions.append("SENTIMENT = %s")
         params.append(sentiment)
     if date_from:
-        conditions.append('"Date" >= %s')
+        conditions.append("DATE >= %s")
         params.append(date.fromisoformat(date_from))
     if date_to:
-        conditions.append('"Date" <= %s')
+        conditions.append("DATE <= %s")
         params.append(date.fromisoformat(date_to))
 
     where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
 
-    query = f"""
-        SELECT
-            "Date",
-            "Platform",
-            "Post Link",
-            "Comment Text",
-            "Sentiment",
-            "Keyword Tag",
-            "Keyword Type"
-        FROM comment_data
-        {where_clause}
-        ORDER BY "Date" ASC
-    """
-
     conn = get_snowflake_connection()
     try:
         cur = conn.cursor()
-        cur.execute(query, params)
-        cols = [d[0] for d in cur.description]
-        return [dict(zip(cols, row)) for row in cur.fetchall()]
+        cur.execute(f"""
+            SELECT
+                DATE,
+                PLATFORM,
+                "POST LINK",
+                "COMMENT TEXT",
+                SENTIMENT,
+                "KEYWORD TAG",
+                "KEYWORD TYPE"
+            FROM COMMENT_DATA
+            {where_clause}
+            ORDER BY DATE ASC
+        """, params)
+        rows = cur.fetchall()
+        return [
+            {
+                "Date": r[0],
+                "Platform": r[1],
+                "Post Link": r[2],
+                "Comment Text": r[3],
+                "Sentiment": r[4],
+                "Keyword Tag": r[5],
+                "Keyword Type": r[6],
+            }
+            for r in rows
+        ]
     finally:
         conn.close()

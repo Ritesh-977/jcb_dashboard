@@ -7,11 +7,6 @@ from app.middleware import get_current_user
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 
-def _rows_to_dicts(cur):
-    cols = [d[0] for d in cur.description]
-    return [dict(zip(cols, row)) for row in cur.fetchall()]
-
-
 @router.get("/posts")
 def get_posts(
     date_from: Optional[date] = Query(None),
@@ -21,10 +16,10 @@ def get_posts(
     conditions = []
     params = []
     if date_from:
-        conditions.append('"Date" >= %s')
+        conditions.append("DATE >= %s")
         params.append(date_from)
     if date_to:
-        conditions.append('"Date" <= %s')
+        conditions.append("DATE <= %s")
         params.append(date_to)
     where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
 
@@ -33,18 +28,30 @@ def get_posts(
         cur = conn.cursor()
         cur.execute(f"""
             SELECT
-                "Date",
-                "Platform",
-                "Post Link",
-                "Likes",
-                "Comments Count",
-                "Shares",
-                "Total Engagement"
-            FROM post_data
+                DATE,
+                PLATFORM,
+                "POST LINK",
+                LIKES,
+                "COMMENTS COUNT",
+                SHARES,
+                "TOTAL ENGAGEMENT"
+            FROM POST_DATA
             {where}
-            ORDER BY "Date" ASC
+            ORDER BY DATE ASC
         """, params)
-        return _rows_to_dicts(cur)
+        rows = cur.fetchall()
+        return [
+            {
+                "Date": r[0],
+                "Platform": r[1],
+                "Post Link": r[2],
+                "Likes": r[3],
+                "Comments Count": r[4],
+                "Shares": r[5],
+                "Total Engagement": r[6],
+            }
+            for r in rows
+        ]
     finally:
         conn.close()
 
@@ -54,8 +61,9 @@ def get_kpi(_user: dict = Depends(get_current_user)):
     conn = get_snowflake_connection()
     try:
         cur = conn.cursor()
-        cur.execute('SELECT "Metric", "Value" FROM kpi_summary')
-        return _rows_to_dicts(cur)
+        cur.execute("SELECT METRIC, VALUE FROM KPI_SUMMARY")
+        rows = cur.fetchall()
+        return [{"Metric": r[0], "Value": r[1]} for r in rows]
     finally:
         conn.close()
 
@@ -67,16 +75,29 @@ def get_sentiment(_user: dict = Depends(get_current_user)):
         cur = conn.cursor()
         cur.execute("""
             SELECT
-                "Platform",
-                "Positive",
-                "Neutral",
-                "Negative",
-                "Total",
-                "% Positive",
-                "% Neutral",
-                "% Negative"
-            FROM overall_sentiment
+                PLATFORM,
+                POSITIVE,
+                NEUTRAL,
+                NEGATIVE,
+                TOTAL,
+                "% POSITIVE",
+                "% NEUTRAL",
+                "% NEGATIVE"
+            FROM OVERALL_SENTIMENT
         """)
-        return _rows_to_dicts(cur)
+        rows = cur.fetchall()
+        return [
+            {
+                "Platform": r[0],
+                "Positive": r[1],
+                "Neutral": r[2],
+                "Negative": r[3],
+                "Total": r[4],
+                "% Positive": r[5],
+                "% Neutral": r[6],
+                "% Negative": r[7],
+            }
+            for r in rows
+        ]
     finally:
         conn.close()

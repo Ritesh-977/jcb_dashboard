@@ -24,7 +24,7 @@ def login(body: LoginRequest):
     conn = get_snowflake_connection()
     try:
         cur = conn.cursor()
-        cur.execute("SELECT id, email, role, password_hash FROM users WHERE email = %s", (body.email,))
+        cur.execute("SELECT ID, EMAIL, ROLE, PASSWORD_HASH FROM USERS WHERE EMAIL = %s", (body.email,))
         row = cur.fetchone()
     finally:
         conn.close()
