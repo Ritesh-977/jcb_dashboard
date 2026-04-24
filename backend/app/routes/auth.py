@@ -21,13 +21,10 @@ class TokenResponse(BaseModel):
 
 @router.post("/login", response_model=TokenResponse)
 def login(body: LoginRequest):
-    conn = get_snowflake_connection()
-    try:
+    with get_snowflake_connection() as conn:
         cur = conn.cursor()
         cur.execute("SELECT ID, EMAIL, ROLE, PASSWORD_HASH FROM USERS WHERE EMAIL = %s", (body.email,))
         row = cur.fetchone()
-    finally:
-        conn.close()
 
     if not row or not pwd_context.verify(body.password, row[3]):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
