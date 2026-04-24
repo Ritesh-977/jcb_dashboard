@@ -2,18 +2,17 @@ import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.db import get_pool, close_pool
+# --- NEW IMPORTS ---
+from fastapi.staticfiles import StaticFiles 
+from fastapi.responses import FileResponse 
+
 from app.routes.auth import router as auth_router
 from app.routes.comments import router as comments_router
 from app.routes.dashboard import router as dashboard_router
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await get_pool()   # open DB pool on startup
     yield
-    await close_pool() # close DB pool on shutdown
-
 
 app = FastAPI(title="JCB Dashboard API", lifespan=lifespan)
 
@@ -33,7 +32,30 @@ app.include_router(auth_router)
 app.include_router(comments_router)
 app.include_router(dashboard_router)
 
-
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+# =========================================================
+# NEW CODE TO SERVE REACT FRONTEND IN SNOWFLAKE CONTAINER
+# =========================================================
+
+# Locate the compiled React dist folder. 
+# Based on our Dockerfile, it will be at /app/frontend/dist
+dist_path = os.path.join(os.path.dirname(__file__), "../../frontend/dist")
+
+# Mount the assets directory so CSS/JS load properly
+if os.path.exists(dist_path):
+    app.mount("/assets", StaticFiles(directory=os.path.join(dist_path, "assets")), name="assets")
+
+# Catch-all route to serve index.html for React Router
+@app.get("/{full_path:path}")
+async def serve_react_app(full_path: str):
+    # Prevent this route from catching missing API endpoints
+    if full_path.startswith("api/"):
+        return {"error": "API route not found"}
+        
+    index_file = os.path.join(dist_path, "index.html")
+    if os.path.exists(index_file):
+        return FileResponse(index_file)
+    return {"error": "Frontend build not found. Did you run 'npm run build'?"}

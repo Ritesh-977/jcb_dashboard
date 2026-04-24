@@ -1,40 +1,35 @@
 from fastapi import APIRouter, Depends, Query
 from typing import Optional
 from datetime import date
-from app.db import get_pool
+from app.db import get_snowflake_connection
 from app.middleware import get_current_user
 
 router = APIRouter(prefix="/comments", tags=["comments"])
 
 
 @router.get("/")
-async def get_comments(
-    platform: Optional[str] = Query(None, description="Filter by Platform (Facebook or Instagram)"),
-    sentiment: Optional[str] = Query(None, description="Filter by Sentiment (Positive, Neutral, Negative)"),
+def get_comments(
+    platform: Optional[str] = Query(None),
+    sentiment: Optional[str] = Query(None),
     date_from: Optional[str] = Query(None),
     date_to: Optional[str] = Query(None),
     _user: dict = Depends(get_current_user),
 ):
-    pool = await get_pool()
-
     conditions = []
     params = []
 
     if platform:
+        conditions.append('"Platform" = %s')
         params.append(platform)
-        conditions.append(f'"Platform" = ${len(params)}')
-
     if sentiment:
+        conditions.append('"Sentiment" = %s')
         params.append(sentiment)
-        conditions.append(f'"Sentiment" = ${len(params)}')
-
     if date_from:
+        conditions.append('"Date" >= %s')
         params.append(date.fromisoformat(date_from))
-        conditions.append(f'"Date" >= ${len(params)}')
-
     if date_to:
+        conditions.append('"Date" <= %s')
         params.append(date.fromisoformat(date_to))
-        conditions.append(f'"Date" <= ${len(params)}')
 
     where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
 
@@ -52,5 +47,11 @@ async def get_comments(
         ORDER BY "Date" ASC
     """
 
-    rows = await pool.fetch(query, *params)
-    return [dict(row) for row in rows]
+    conn = get_snowflake_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(query, params)
+        cols = [d[0] for d in cur.description]
+        return [dict(zip(cols, row)) for row in cur.fetchall()]
+    finally:
+        conn.close()

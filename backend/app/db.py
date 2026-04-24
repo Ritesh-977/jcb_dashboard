@@ -1,29 +1,38 @@
-import asyncpg
 import os
-from dotenv import load_dotenv
+import snowflake.connector
+from fastapi import HTTPException
 
-load_dotenv()
+def get_snowflake_connection():
+    """
+    Creates a connection to the Snowflake database using the internal 
+    security tokens provided automatically by Snowpark Container Services.
+    """
+    # 1. Path to the automatically injected security token inside the container
+    token_file_path = "/snowflake/session/token"
+    
+    # 2. Safety check: Are we actually running inside Snowflake?
+    if not os.path.exists(token_file_path):
+        # Fallback for local development (you can add your .env variables here later)
+        raise HTTPException(status_code=500, detail="Snowflake token not found. Not running in SPCS.")
 
-_pool = None
+    # 3. Read the security token
+    with open(token_file_path, "r") as f:
+        token = f.read().strip()
 
-async def get_pool():
-    global _pool
-    if _pool is None:
-        _pool = await asyncpg.create_pool(
-            host=os.getenv("DB_HOST", "localhost"),
-            port=int(os.getenv("DB_PORT", 5432)),
-            database=os.getenv("DB_NAME"),
-            user=os.getenv("DB_USER"),
-            password=os.getenv("DB_PASSWORD"),
-            min_size=1,
-            max_size=10,
-            ssl="require",
-            statement_cache_size=0,
+    # 4. Connect using environment variables automatically provided by SPCS
+    try:
+        conn = snowflake.connector.connect(
+            host=os.getenv("SNOWFLAKE_HOST"),
+            port=os.getenv("SNOWFLAKE_PORT"),
+            account=os.getenv("SNOWFLAKE_ACCOUNT"),
+            authenticator="oauth",
+            token=token,
+            # Optionally specify the warehouse you created earlier
+            warehouse="my_basic_wh",
+            database="my_dashboard",
+            schema="public"
         )
-    return _pool
-
-async def close_pool():
-    global _pool
-    if _pool:
-        await _pool.close()
-        _pool = None
+        return conn
+    except Exception as e:
+        print(f"Database connection failed: {e}")
+        raise HTTPException(status_code=500, detail="Could not connect to Snowflake.")

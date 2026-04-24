@@ -1,67 +1,82 @@
 from fastapi import APIRouter, Depends, Query
 from typing import Optional
 from datetime import date
-from app.db import get_pool
+from app.db import get_snowflake_connection
 from app.middleware import get_current_user
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 
+def _rows_to_dicts(cur):
+    cols = [d[0] for d in cur.description]
+    return [dict(zip(cols, row)) for row in cur.fetchall()]
+
+
 @router.get("/posts")
-async def get_posts(
+def get_posts(
     date_from: Optional[date] = Query(None),
     date_to: Optional[date] = Query(None),
     _user: dict = Depends(get_current_user),
 ):
-    pool = await get_pool()
     conditions = []
     params = []
     if date_from:
+        conditions.append('"Date" >= %s')
         params.append(date_from)
-        conditions.append(f'"Date" >= ${len(params)}')
     if date_to:
+        conditions.append('"Date" <= %s')
         params.append(date_to)
-        conditions.append(f'"Date" <= ${len(params)}')
     where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
-    rows = await pool.fetch(f"""
-        SELECT
-            "Date",
-            "Platform",
-            "Post Link",
-            "Likes",
-            "Comments Count",
-            "Shares",
-            "Total Engagement"
-        FROM post_data
-        {where}
-        ORDER BY "Date" ASC
-    """, *params)
-    return [dict(row) for row in rows]
+
+    conn = get_snowflake_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute(f"""
+            SELECT
+                "Date",
+                "Platform",
+                "Post Link",
+                "Likes",
+                "Comments Count",
+                "Shares",
+                "Total Engagement"
+            FROM post_data
+            {where}
+            ORDER BY "Date" ASC
+        """, params)
+        return _rows_to_dicts(cur)
+    finally:
+        conn.close()
 
 
 @router.get("/kpi")
-async def get_kpi(_user: dict = Depends(get_current_user)):
-    pool = await get_pool()
-    rows = await pool.fetch("""
-        SELECT "Metric", "Value"
-        FROM kpi_summary
-    """)
-    return [dict(row) for row in rows]
+def get_kpi(_user: dict = Depends(get_current_user)):
+    conn = get_snowflake_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute('SELECT "Metric", "Value" FROM kpi_summary')
+        return _rows_to_dicts(cur)
+    finally:
+        conn.close()
 
 
 @router.get("/sentiment")
-async def get_sentiment(_user: dict = Depends(get_current_user)):
-    pool = await get_pool()
-    rows = await pool.fetch("""
-        SELECT
-            "Platform",
-            "Positive",
-            "Neutral",
-            "Negative",
-            "Total",
-            "% Positive",
-            "% Neutral",
-            "% Negative"
-        FROM overall_sentiment
-    """)
-    return [dict(row) for row in rows]
+def get_sentiment(_user: dict = Depends(get_current_user)):
+    conn = get_snowflake_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT
+                "Platform",
+                "Positive",
+                "Neutral",
+                "Negative",
+                "Total",
+                "% Positive",
+                "% Neutral",
+                "% Negative"
+            FROM overall_sentiment
+        """)
+        return _rows_to_dicts(cur)
+    finally:
+        conn.close()
