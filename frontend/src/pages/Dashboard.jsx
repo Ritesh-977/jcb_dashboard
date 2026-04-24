@@ -41,11 +41,7 @@ export default function Dashboard() {
         if (dateTo) params.append('date_to', dateTo.toISOString().split('T')[0]);
         const query = params.toString() ? `?${params}` : '';
 
-        const [posts, kpi, sentiment] = await Promise.all([
-          apiFetch(`/dashboard/posts${query}`),
-          apiFetch('/dashboard/kpi'),
-          apiFetch('/dashboard/sentiment'),
-        ]);
+        const { posts, kpi, sentiment } = await apiFetch(`/dashboard/all${query}`);
 
         setChartData(posts.map(p => ({
           date: new Date(p.Date).toLocaleDateString('en-GB', { day: 'numeric', month: 'numeric', year: '2-digit' }),

@@ -9,9 +9,11 @@ from fastapi.responses import FileResponse
 from app.routes.auth import router as auth_router
 from app.routes.comments import router as comments_router
 from app.routes.dashboard import router as dashboard_router
+from app.db import init_connection_pool
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    init_connection_pool()
     yield
 
 app = FastAPI(title="JCB Dashboard API", lifespan=lifespan)

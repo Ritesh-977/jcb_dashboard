@@ -27,8 +27,8 @@ export default function SentimentDashboard() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [sentiment, comments] = await Promise.all([
-          apiFetch('/dashboard/sentiment'),
+        const [{ sentiment, kpi: _ }, comments] = await Promise.all([
+          apiFetch('/dashboard/all'),
           apiFetch('/comments/'),
         ]);
 

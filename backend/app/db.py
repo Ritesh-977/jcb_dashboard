@@ -1,38 +1,49 @@
 import os
 import snowflake.connector
+from snowflake.connector.connection import SnowflakeConnection
 from fastapi import HTTPException
+from contextlib import contextmanager
 
-def get_snowflake_connection():
-    """
-    Creates a connection to the Snowflake database using the internal 
-    security tokens provided automatically by Snowpark Container Services.
-    """
-    # 1. Path to the automatically injected security token inside the container
+_connection_pool = None
+
+def init_connection_pool():
+    global _connection_pool
     token_file_path = "/snowflake/session/token"
     
-    # 2. Safety check: Are we actually running inside Snowflake?
-    if not os.path.exists(token_file_path):
-        # Fallback for local development (you can add your .env variables here later)
-        raise HTTPException(status_code=500, detail="Snowflake token not found. Not running in SPCS.")
-
-    # 3. Read the security token
-    with open(token_file_path, "r") as f:
-        token = f.read().strip()
-
-    # 4. Connect using environment variables automatically provided by SPCS
-    try:
-        conn = snowflake.connector.connect(
+    if os.path.exists(token_file_path):
+        with open(token_file_path, "r") as f:
+            token = f.read().strip()
+        _connection_pool = snowflake.connector.connect(
             host=os.getenv("SNOWFLAKE_HOST"),
             port=os.getenv("SNOWFLAKE_PORT"),
             account=os.getenv("SNOWFLAKE_ACCOUNT"),
             authenticator="oauth",
             token=token,
-            # Optionally specify the warehouse you created earlier
             warehouse="my_basic_wh",
             database="my_dashboard",
-            schema="public"
+            schema="public",
+            client_session_keep_alive=True
         )
-        return conn
+    else:
+        _connection_pool = snowflake.connector.connect(
+            host=os.getenv("SNOWFLAKE_HOST"),
+            port=int(os.getenv("SNOWFLAKE_PORT", 443)),
+            account=os.getenv("SNOWFLAKE_ACCOUNT"),
+            user=os.getenv("SNOWFLAKE_USER"),
+            password=os.getenv("SNOWFLAKE_PASSWORD"),
+            warehouse="my_basic_wh",
+            database="my_dashboard",
+            schema="public",
+            client_session_keep_alive=True
+        )
+
+@contextmanager
+def get_snowflake_connection():
+    global _connection_pool
+    if _connection_pool is None:
+        init_connection_pool()
+    try:
+        yield _connection_pool
     except Exception as e:
-        print(f"Database connection failed: {e}")
-        raise HTTPException(status_code=500, detail="Could not connect to Snowflake.")
+        print(f"Database query failed: {e}")
+        raise HTTPException(status_code=500, detail="Database query failed")

@@ -36,7 +36,7 @@ export default function TrendDashboard() {
         if (dateTo) params.append('date_to', dateTo.toISOString().split('T')[0]);
         const query = params.toString() ? `?${params}` : '';
 
-        const comments = await apiFetch(`/comments${query}`);
+        const comments = await apiFetch(`/comments/${query}`);
 
         const sortedDates = [...new Set(comments.map(c => c.Date))].sort();
 
