@@ -1,8 +1,4 @@
-// Check if Vite is running a production build (automatically set to true during 'npm run build')
-const isProduction = import.meta.env.PROD;
-
-// Use an empty string (relative path) for Snowflake, and localhost for local development
-const API_BASE = isProduction ? "" : "http://localhost:8000";
+const API_BASE = import.meta.env.PROD ? import.meta.env.VITE_API_URL : 'http://localhost:8000';
 
 export async function apiFetch(path, options = {}) {
   const token = localStorage.getItem('access_token');
