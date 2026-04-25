@@ -28,9 +28,7 @@ const Sidebar = () => {
     >
       {/* Logo / Brand */}
       <div className="flex items-center justify-between px-4 py-4 border-b border-white/10">
-        {!collapsed && (
-          <span className="text-sm font-bold tracking-wide text-white truncate">JCB SENTIMENT Dashboard</span>
-        )}
+        <span className="text-sm font-bold tracking-wide text-white truncate">JCB Dashboard</span>
         <button
           onClick={() => setCollapsed((c) => !c)}
           className="p-1 rounded hover:bg-white/10 transition-colors ml-auto"

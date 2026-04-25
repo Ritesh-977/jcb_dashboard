@@ -11,6 +11,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # 4. Copy the compiled React frontend into the container
 COPY frontend/dist /app/frontend/dist
 
+# Add this new line to copy the Admin frontend!
+COPY frontend_admin/dist /app/frontend_admin/dist
+
 # 5. Copy your entire backend code into the container
 COPY backend /app/backend
 

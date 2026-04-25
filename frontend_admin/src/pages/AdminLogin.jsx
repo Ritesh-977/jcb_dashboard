@@ -173,10 +173,9 @@ export default function AdminLogin() {
           font-size: 0.95rem; font-weight: 700; cursor: pointer;
           display: flex; align-items: center; justify-content: center; gap: 0.5rem;
           font-family: 'Inter', sans-serif; letter-spacing: 0.01em;
-          transition: opacity 0.18s, transform 0.18s, box-shadow 0.18s;
-          box-shadow: 0 4px 20px rgba(99,102,241,0.35);
+          transition: opacity 0.18s, transform 0.18s;
         }
-        .admin-submit:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 8px 28px rgba(99,102,241,0.5); }
+        .admin-submit:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
         .admin-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
         /* Error */
@@ -235,22 +234,6 @@ export default function AdminLogin() {
             <p className="admin-subline">
               Manage users, assign permissions, and control who sees what — all from one protected portal.
             </p>
-
-            <div className="access-cards">
-              {[
-                { bg: 'rgba(99,102,241,0.15)', color: '#818cf8', title: 'User Management', text: 'Create, edit and disable accounts', icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-5-3.87M9 20H4v-2a4 4 0 015-3.87m6-4a4 4 0 11-8 0 4 4 0 018 0z" /></svg> },
-                { bg: 'rgba(16,185,129,0.12)', color: '#34d399', title: 'Permission Control', text: 'Granular page-level access rules', icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg> },
-                { bg: 'rgba(245,158,11,0.12)', color: '#fbbf24', title: 'Audit & Security', text: 'JWT-secured with role validation', icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg> },
-              ].map(({ bg, color, title, text, icon }) => (
-                <div key={title} className="access-card">
-                  <div className="access-card-icon" style={{ background: bg, color }}>{icon}</div>
-                  <div>
-                    <div className="access-card-title">{title}</div>
-                    <div className="access-card-text">{text}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
 
             <div className="admin-version">v1.0 · JCB Dashboard</div>
           </div>

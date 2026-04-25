@@ -82,7 +82,7 @@ export default function Layout({ children, title }) {
           <div className="topbar-actions">
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#f1f5f9', padding: '0.35rem 0.75rem', borderRadius: '8px' }}>
               <div style={{ width: 26, height: 26, borderRadius: '50%', background: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: '#fff' }}>{initials}</div>
-              <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#374151' }} className="hide-mobile">{auth?.email}</span>
+              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#374151' }}>Admin</span>
             </div>
           </div>
         </header>

@@ -65,21 +65,19 @@ export default function Login() {
 
         {/* ── Left panel ── */}
         <div className="login-left" style={s.left}>
+          <div style={s.brandTop}>
+            <div style={s.brandIcon}>
+              <svg width="22" height="22" fill="none" stroke="#fff" strokeWidth={2.5} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <div>
+              <div style={s.brandName}>JCB Sentiment</div>
+              <div style={s.brandSub}>Analytics Dashboard</div>
+            </div>
+          </div>
 
           <div style={s.leftInner}>
-            {/* Brand */}
-            <div style={s.brand}>
-              <div style={s.brandIcon}>
-                <svg width="22" height="22" fill="none" stroke="#fff" strokeWidth={2.5} viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                </svg>
-              </div>
-              <div>
-                <div style={s.brandName}>JCB Sentiment</div>
-                <div style={s.brandSub}>Analytics Dashboard</div>
-              </div>
-            </div>
-
             <h1 style={s.headline}>
               Understand your<br />
               <span style={{ color: '#2bb5e8' }}>audience better.</span>
@@ -199,8 +197,8 @@ const s = {
 
   // Left
   left: { flex: 1, background: 'linear-gradient(145deg, #0b1d3d 0%, #0d2a52 55%, #0e3060 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3rem 3.5rem', position: 'relative', overflow: 'hidden' },
-  leftInner: { maxWidth: 440, position: 'relative', zIndex: 1 },
-  brand: { display: 'flex', alignItems: 'center', gap: '0.85rem', marginBottom: '2.75rem' },
+  brandTop: { position: 'absolute', top: '1.5rem', left: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.85rem' },
+  leftInner: { maxWidth: 440, position: 'relative', zIndex: 1, paddingTop: '4.25rem' },
   brandIcon: { width: 46, height: 46, borderRadius: '12px', background: 'linear-gradient(135deg, #2bb5e8, #1a8ab5)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 16px rgba(43,181,232,0.35)' },
   brandName: { color: '#fff', fontWeight: 800, fontSize: '1.05rem', letterSpacing: '-0.01em' },
   brandSub: { color: '#7dd3fc', fontSize: '0.72rem', fontWeight: 500, marginTop: '0.1rem' },
