@@ -1,0 +1,40 @@
+spec:
+  containers:
+    - name: api-backend
+      image: /MY_DASHBOARD/PUBLIC/my-repo/api-backend:v1.0
+      env:
+        SNOWFLAKE_ACCOUNT: "JUJYOTT-NW58849"
+        SNOWFLAKE_USER: "RITESH977"
+        SNOWFLAKE_DATABASE: "MY_DASHBOARD"
+        SNOWFLAKE_SCHEMA: "PUBLIC"
+        SNOWFLAKE_PASSWORD: "Riteshsingh@977"
+        SNOWFLAKE_WAREHOUSE: "MY_BASIC_WH" # Usually COMPUTE_WH
+        SECRET_KEY: "dashboard_secret_key" 
+      readinessProbe:
+        port: 8000
+        path: /health
+
+    - name: dashboard-website
+      image: /MY_DASHBOARD/PUBLIC/my-repo/dashboard-website:v1.0
+      readinessProbe:
+        port: 3000
+        path: /
+
+    - name: admin-website
+      image: /MY_DASHBOARD/PUBLIC/my-repo/admin-website:v1.0
+      readinessProbe:
+        port: 3001
+        path: /
+
+  endpoints:
+    - name: api
+      port: 8000
+      public: true
+
+    - name: dashboard
+      port: 3000
+      public: true
+
+    - name: admin
+      port: 3001
+      public: true
