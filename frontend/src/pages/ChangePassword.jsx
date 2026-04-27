@@ -44,6 +44,7 @@ export default function ChangePassword() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (form.new_password.length < 6) { setErr('New password must be at least 6 characters'); return; }
     if (form.new_password !== form.confirm) { setErr('Passwords do not match'); return; }
     setLoading(true); setErr(''); setMsg('');
     try {
@@ -63,7 +64,7 @@ export default function ChangePassword() {
   return (
     <div style={styles.page}>
       <div style={styles.card}>
-        <button onClick={() => navigate('/admin/users')} style={styles.back}>← Back to User Management</button>
+        <button onClick={() => navigate(-1)} style={styles.back}>← Back</button>
         <h2 style={styles.title}>Change Password</h2>
         <form onSubmit={handleSubmit}>
           {[['old_password', 'Current Password'], ['new_password', 'New Password']].map(([key, label]) => (

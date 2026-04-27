@@ -10,7 +10,7 @@ export async function apiFetch(path, options = {}) {
       ...options.headers,
     },
   });
-  if (res.status === 401) {
+  if (res.status === 401 && !path.includes('login') && !path.includes('change-password')) {
     localStorage.removeItem('access_token');
     localStorage.removeItem('isAuthenticated');
     window.location.href = '/login';
