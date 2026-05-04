@@ -1,5 +1,6 @@
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from app.db import get_snowflake_connection
+from app.routes import dashboard as dashboard_module
 import csv
 import uuid
 from io import StringIO
@@ -190,6 +191,11 @@ async def upload_csv(
                 """, author_params)
 
         conn.commit()
+
+    # Bust cached markets list and data cache so the dashboard picks up new markets immediately
+    dashboard_module._markets_cache["data"] = None
+    dashboard_module._markets_cache["ts"] = 0
+    dashboard_module._cache.clear()
 
     return {
         "message": f"Processed {len(rows)} rows for market '{market_code}'",

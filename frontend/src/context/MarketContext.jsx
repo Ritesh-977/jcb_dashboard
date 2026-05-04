@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { apiFetch } from '../api';
 import { useAuth } from './AuthContext';
 
@@ -9,16 +9,31 @@ export function MarketProvider({ children }) {
   const [markets, setMarkets] = useState([]);
   const { auth } = useAuth();
 
-  // Re-fetch markets whenever auth changes (e.g. after login)
+  const fetchMarkets = useCallback(async () => {
+    if (!auth) return;
+    try {
+      const data = await apiFetch('/dashboard/markets');
+      setMarkets(Array.isArray(data) ? data : []);
+    } catch {
+      // silently ignore — auth errors already redirect via apiFetch
+    }
+  }, [auth]);
+
+  // Fetch on login / auth change
   useEffect(() => {
     if (!auth) {
       setMarkets([]);
       return;
     }
-    apiFetch('/dashboard/markets')
-      .then((data) => setMarkets(Array.isArray(data) ? data : []))
-      .catch(() => {});
-  }, [auth]);
+    fetchMarkets();
+  }, [auth, fetchMarkets]);
+
+  // Re-fetch when the user switches back to this tab (catches markets added from admin panel)
+  useEffect(() => {
+    const handleFocus = () => { if (auth) fetchMarkets(); };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [auth, fetchMarkets]);
 
   const updateMarket = (value) => {
     setMarket(value);
@@ -30,7 +45,7 @@ export function MarketProvider({ children }) {
   };
 
   return (
-    <MarketContext.Provider value={{ market, setMarket: updateMarket, markets }}>
+    <MarketContext.Provider value={{ market, setMarket: updateMarket, markets, refreshMarkets: fetchMarkets }}>
       {children}
     </MarketContext.Provider>
   );
