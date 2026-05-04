@@ -4,14 +4,16 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { apiFetch } from '../api';
 import S from '../components/Skeleton';
+import { useMarket } from '../context/MarketContext';
 
 export default function TrendDashboard() {
   const today = new Date();
   const [trendData, setTrendData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [dateFrom, setDateFrom] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
-  const [dateTo, setDateTo] = useState(today);
+  const [dateFrom, setDateFrom] = useState(null);
+  const [dateTo, setDateTo] = useState(null);
+  const { market } = useMarket();
 
   const handleDateFromChange = (date) => {
     setDateFrom(date);
@@ -34,6 +36,7 @@ export default function TrendDashboard() {
         const params = new URLSearchParams();
         if (dateFrom) params.append('date_from', dateFrom.toISOString().split('T')[0]);
         if (dateTo) params.append('date_to', dateTo.toISOString().split('T')[0]);
+        if (market) params.append('market', market);
         const query = params.toString() ? `?${params}` : '';
 
         const comments = await apiFetch(`/comments/${query}`);
@@ -62,7 +65,7 @@ export default function TrendDashboard() {
       }
     };
     load();
-  }, [dateFrom, dateTo]);
+  }, [dateFrom, dateTo, market]);
 
   if (loading) return (
     <div className="p-6 max-w-[1400px] mx-auto">

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useMarket } from '../context/MarketContext';
 
 const NAV_ITEMS = [
   { to: '/',          label: 'Campaign Overview',  permission: 'view_kpi',       icon: <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7m-9 2v8m4-8v8m5 0H4" /></svg> },
@@ -13,6 +14,7 @@ const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
   const { logout, auth } = useAuth();
+  const { market, setMarket, markets } = useMarket();
   const permissions = auth?.permissions ?? [];
 
   const handleLogout = () => {
@@ -43,6 +45,25 @@ const Sidebar = () => {
           </svg>
         </button>
       </div>
+
+      {/* Market Selector */}
+      {!collapsed && (
+        <div className="px-3 py-3 border-b border-white/10">
+          <label className="block text-[10px] font-semibold text-blue-300 uppercase tracking-wider mb-1.5">Market</label>
+          <select
+            value={market}
+            onChange={(e) => setMarket(e.target.value)}
+            className="w-full bg-white/10 text-white text-xs rounded-md px-2 py-1.5 outline-none border border-white/20 hover:bg-white/20 transition-colors cursor-pointer"
+          >
+            <option value="" className="text-gray-800">All Markets</option>
+            {markets.map((m) => (
+              <option key={m.code || m} value={m.code || m} className="text-gray-800">
+                {m.name || m} ({m.code || m})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Nav Links */}
       <nav className="flex flex-col gap-1 p-2 flex-1">

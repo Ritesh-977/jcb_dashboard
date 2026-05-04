@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { MarketProvider } from './context/MarketContext';
 import Layout from './components/Layout';
 import { DashboardRoute } from './components/ProtectedRoute';
 import Dashboard from './pages/Dashboard';
@@ -14,6 +15,7 @@ import AccessDenied from './pages/AccessDenied';
 function App() {
   return (
     <AuthProvider>
+      <MarketProvider>
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
@@ -45,6 +47,7 @@ function App() {
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>
+      </MarketProvider>
     </AuthProvider>
   );
 }

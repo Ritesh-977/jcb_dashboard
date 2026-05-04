@@ -44,9 +44,9 @@ const PlatformSentiment = ({ sentimentData }) => (
           <StackedBarRow
             key={row.Platform}
             platform={row.Platform}
-            positivePct={Math.round(row['% Positive'] * 100)}
-            neutralPct={Math.round(row['% Neutral'] * 100)}
-            negativePct={Math.round(row['% Negative'] * 100)}
+            positivePct={Math.round(row['% Positive'])}
+            neutralPct={Math.round(row['% Neutral'])}
+            negativePct={Math.round(row['% Negative'])}
           />
         ))}
       </div>

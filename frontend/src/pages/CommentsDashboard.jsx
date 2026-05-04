@@ -3,6 +3,7 @@ import FacebookComments from '../components/FacebookComments';
 import InstagramComments from '../components/InstagramComments';
 import { apiFetch } from '../api';
 import S from '../components/Skeleton';
+import { useMarket } from '../context/MarketContext';
 
 export default function CommentsDashboard() {
   const [comments, setComments] = useState([]);
@@ -10,6 +11,7 @@ export default function CommentsDashboard() {
   const [error, setError] = useState(null);
   const [platform, setPlatform] = useState('');
   const [sentiment, setSentiment] = useState('');
+  const { market } = useMarket();
 
   useEffect(() => {
     const fetchComments = async () => {
@@ -19,6 +21,7 @@ export default function CommentsDashboard() {
         const params = new URLSearchParams();
         if (platform) params.append('platform', platform);
         if (sentiment) params.append('sentiment', sentiment);
+        if (market) params.append('market', market);
 
         const data = await apiFetch(`/comments/?${params}`);
         setComments(data);
@@ -30,7 +33,7 @@ export default function CommentsDashboard() {
     };
 
     fetchComments();
-  }, [platform, sentiment]);
+  }, [platform, sentiment, market]);
 
   const fbComments = comments.filter(c => c.Platform === 'Facebook');
   const igComments = comments.filter(c => c.Platform === 'Instagram');

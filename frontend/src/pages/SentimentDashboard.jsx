@@ -4,6 +4,7 @@ import PlatformSentiment from '../components/PlatformSentiment';
 import SentimentImpact from '../components/SentimentImpact';
 import { apiFetch } from '../api';
 import S from '../components/Skeleton';
+import { useMarket } from '../context/MarketContext';
 
 const SIZE_SCALE = (count) => {
   if (count >= 5) return 'text-5xl';
@@ -23,21 +24,26 @@ export default function SentimentDashboard() {
   const [totals, setTotals] = useState({ comments: 0, positive: 0, neutral: 0, negative: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const { market } = useMarket();
 
   useEffect(() => {
     const load = async () => {
+      setLoading(true);
+      setTotals({ comments: 0, positive: 0, neutral: 0, negative: 0 });
+      setSentimentData([]);
       try {
-        const [{ sentiment, kpi: _ }, comments] = await Promise.all([
-          apiFetch('/dashboard/all'),
-          apiFetch('/comments/'),
+        const query = market ? `?market=${encodeURIComponent(market)}` : '';
+        const [{ sentiment }, comments] = await Promise.all([
+          apiFetch(`/dashboard/all${query}`),
+          apiFetch(`/comments/${query}`),
         ]);
 
         setSentimentData(sentiment);
         setTotals({
-          comments: sentiment.reduce((s, r) => s + r.Total, 0),
-          positive: sentiment.reduce((s, r) => s + r.Positive, 0),
-          neutral:  sentiment.reduce((s, r) => s + r.Neutral, 0),
-          negative: sentiment.reduce((s, r) => s + r.Negative, 0),
+          comments: sentiment.reduce((s, r) => s + (r.Total ?? 0), 0),
+          positive: sentiment.reduce((s, r) => s + (r.Positive ?? 0), 0),
+          neutral:  sentiment.reduce((s, r) => s + (r.Neutral ?? 0), 0),
+          negative: sentiment.reduce((s, r) => s + (r.Negative ?? 0), 0),
         });
 
         const tagCounts = comments.reduce((acc, c) => {
@@ -68,7 +74,7 @@ export default function SentimentDashboard() {
       }
     };
     load();
-  }, []);
+  }, [market]);
 
   if (loading) return (
     <div className="p-3 md:p-6 max-w-[1400px] mx-auto mt-2 md:mt-4">

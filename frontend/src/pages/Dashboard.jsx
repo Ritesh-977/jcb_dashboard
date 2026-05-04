@@ -6,6 +6,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { apiFetch } from '../api';
 import S from '../components/Skeleton';
+import { useMarket } from '../context/MarketContext';
 
 export default function Dashboard() {
   const today = new Date();
@@ -13,10 +14,11 @@ export default function Dashboard() {
   const [kpiData, setKpiData] = useState([]);
   const [sentimentData, setSentimentData] = useState([]);
   const [totalInteractions, setTotalInteractions] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);     // only true on first mount
   const [error, setError] = useState(null);
-  const [dateFrom, setDateFrom] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
-  const [dateTo, setDateTo] = useState(today);
+  const [dateFrom, setDateFrom] = useState(null);
+  const [dateTo, setDateTo] = useState(null);
+  const { market } = useMarket();
 
   const handleDateFromChange = (date) => {
     setDateFrom(date);
@@ -33,34 +35,47 @@ export default function Dashboard() {
     }
   };
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const params = new URLSearchParams();
-        if (dateFrom) params.append('date_from', dateFrom.toISOString().split('T')[0]);
-        if (dateTo) params.append('date_to', dateTo.toISOString().split('T')[0]);
-        const query = params.toString() ? `?${params}` : '';
+useEffect(() => {
+    const timer = setTimeout(() => {
+      const load = async () => {
+        try {
+          const params = new URLSearchParams();
+          if (dateFrom) params.append('date_from', dateFrom.toISOString().split('T')[0]);
+          if (dateTo) params.append('date_to', dateTo.toISOString().split('T')[0]);
+          if (market) params.append('market', market);
+          const query = params.toString() ? `?${params}` : '';
 
-        const { posts, kpi, sentiment } = await apiFetch(`/dashboard/all${query}`);
+          const { posts, kpi, sentiment, metrics } = await apiFetch(`/dashboard/all${query}`);
 
-        setChartData(posts.map(p => ({
-          date: new Date(p.Date).toLocaleDateString('en-GB', { day: 'numeric', month: 'numeric', year: '2-digit' }),
-          likes: p.Likes,
-          comments: p['Comments Count'],
-          shares: p.Shares,
-        })));
+          const grouped = {};
+          posts.forEach(p => {
+            const key = new Date(p.Date).toLocaleDateString('en-GB', { day: 'numeric', month: 'numeric', year: '2-digit' });
+            if (!grouped[key]) grouped[key] = { date: key, likes: 0, comments: 0, shares: 0 };
+            grouped[key].likes += p.Likes || 0;
+            grouped[key].comments += p['Comments Count'] || 0;
+            grouped[key].shares += p.Shares || 0;
+          });
+          setChartData(Object.values(grouped));
 
-        setTotalInteractions(posts.reduce((sum, p) => sum + p['Total Engagement'], 0));
-        setKpiData(kpi);
-        setSentimentData(sentiment);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
-  }, [dateFrom, dateTo]);
+          setTotalInteractions(metrics.total_engagement);
+          setKpiData([
+            ...kpi,
+            { Metric: '% Positive', Value: metrics.positive_pct },
+            { Metric: '% Negative', Value: metrics.negative_pct },
+            { Metric: '% Neutral', Value: metrics.neutral_pct },
+          ]);
+          setSentimentData(sentiment);
+        } catch (err) {
+          setError(err.message);
+        } finally {
+          setLoading(false);
+        }
+      };
+      load();
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [dateFrom, dateTo, market]);
 
   if (loading) return (
     <div className="p-3 md:p-6 max-w-[1400px] mx-auto">
@@ -147,9 +162,6 @@ export default function Dashboard() {
               <span className="text-lg md:text-2xl font-bold text-[#0b1d3d]">{totalInteractions.toLocaleString()}</span>
               <span className="text-[10px] md:text-xs text-gray-500 ml-1 uppercase">Interactions</span>
             </div>
-            <select className="border border-gray-300 rounded-md px-2 md:px-3 py-1.5 text-xs md:text-sm text-gray-600 bg-white outline-none">
-              <option>PH</option>
-            </select>
           </div>
         </div>
 
