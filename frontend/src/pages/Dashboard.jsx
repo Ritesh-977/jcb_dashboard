@@ -14,6 +14,7 @@ export default function Dashboard() {
   const [kpiData, setKpiData] = useState([]);
   const [sentimentData, setSentimentData] = useState([]);
   const [totalInteractions, setTotalInteractions] = useState(0);
+  const [totalShares, setTotalShares] = useState(0);
   const [loading, setLoading] = useState(true);     // only true on first mount
   const [error, setError] = useState(null);
   const [dateFrom, setDateFrom] = useState(null);
@@ -56,14 +57,10 @@ useEffect(() => {
             grouped[key].shares += p.Shares || 0;
           });
           setChartData(Object.values(grouped));
+          setTotalShares(posts.reduce((sum, p) => sum + (p.Shares || 0), 0));
 
           setTotalInteractions(metrics.total_engagement);
-          setKpiData([
-            ...kpi,
-            { Metric: '% Positive', Value: metrics.positive_pct },
-            { Metric: '% Negative', Value: metrics.negative_pct },
-            { Metric: '% Neutral', Value: metrics.neutral_pct },
-          ]);
+          setKpiData(kpi);
           setSentimentData(sentiment);
         } catch (err) {
           setError(err.message);
@@ -177,7 +174,7 @@ useEffect(() => {
                 No data available for the selected date range.
               </div>
             ) : (
-              <MetricsSection kpiData={kpiData} sentimentData={sentimentData} />
+              <MetricsSection kpiData={kpiData} sentimentData={sentimentData} totalShares={totalShares} />
             )}
           </div>
         </div>

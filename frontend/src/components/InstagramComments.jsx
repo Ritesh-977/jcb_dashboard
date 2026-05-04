@@ -26,52 +26,58 @@ const InstagramComments = ({ comments }) => {
         <span className="font-semibold text-gray-800">Instagram</span>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
-
-        {/* Left: Post image + dark action bar */}
-        <div className="flex flex-col">
-          <div className="overflow-hidden border border-gray-100 aspect-square">
-            <img src={promoImage} alt="IG Post" className="w-full h-full object-cover" />
-          </div>
-
-          <div className="bg-[#1a1a1a] text-white px-4 py-2 flex justify-between items-center text-lg">
-            <div className="flex items-center gap-3">
-              <span className="flex items-center gap-1 cursor-pointer">
-                🤍 <span className="text-sm">{totalLikes}</span>
-              </span>
-              <span className="cursor-pointer">💬 <span className="text-sm">{totalComments}</span></span>
-              <span className="cursor-pointer">↗️ <span className="text-sm">{totalShares}</span></span>
+      {(!comments || comments.length === 0) ? (
+        <div className="flex-1 flex items-center justify-center text-gray-400 text-sm py-8">
+          No data available.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
+  
+          {/* Left: Post image + dark action bar */}
+          <div className="flex flex-col">
+            <div className="overflow-hidden border border-gray-100 aspect-square">
+              <img src={promoImage} alt="IG Post" className="w-full h-full object-cover" />
             </div>
-            <span className="cursor-pointer">📌</span>
-          </div>
-        </div>
-
-        {/* Right: Scrollable comment timeline */}
-        <div className="relative pl-2 max-h-[500px] overflow-y-auto pr-2">
-          <div className="absolute left-6 top-4 bottom-8 w-[2px] bg-gray-100 z-0" />
-
-          <div className="flex flex-col gap-4 relative z-10">
-            {comments.map((comment, index) => (
-              <div key={index} className="flex gap-3 items-start">
-                <div className="w-8 h-8 rounded-full bg-[#E4405F] flex-shrink-0 mt-1 flex items-center justify-center border-2 border-white shadow-sm">
-                  <span className="text-[10px] font-bold text-white">
-                    {comment['Comment Text'].charAt(0).toUpperCase()}
-                  </span>
-                </div>
-
-                <div className="bg-[#f0f2f5] px-3 py-2 rounded-2xl rounded-tl-sm text-[13px] text-gray-800 max-w-[90%]">
-                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full mr-1 ${SENTIMENT_COLORS[comment.Sentiment]}`}>
-                    {comment.Sentiment}
-                  </span>
-                  <span className="leading-tight">{comment['Comment Text']}</span>
-                  <span className="block text-[10px] text-gray-400 mt-1">{comment.Date}</span>
-                </div>
+  
+            <div className="bg-[#1a1a1a] text-white px-4 py-2 flex justify-between items-center text-lg">
+              <div className="flex items-center gap-3">
+                <span className="flex items-center gap-1 cursor-pointer">
+                  🤍 <span className="text-sm">{totalLikes}</span>
+                </span>
+                <span className="cursor-pointer">💬 <span className="text-sm">{totalComments}</span></span>
+                <span className="cursor-pointer">↗️ <span className="text-sm">{totalShares}</span></span>
               </div>
-            ))}
+              <span className="cursor-pointer">📌</span>
+            </div>
           </div>
+  
+          {/* Right: Scrollable comment timeline */}
+          <div className="relative pl-2 max-h-[500px] overflow-y-auto pr-2">
+            <div className="absolute left-6 top-4 bottom-8 w-[2px] bg-gray-100 z-0" />
+  
+            <div className="flex flex-col gap-4 relative z-10">
+              {comments.map((comment, index) => (
+                <div key={index} className="flex gap-3 items-start">
+                  <div className="w-8 h-8 rounded-full bg-[#E4405F] flex-shrink-0 mt-1 flex items-center justify-center border-2 border-white shadow-sm">
+                    <span className="text-[10px] font-bold text-white">
+                      {comment['Comment Text'].charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+  
+                  <div className="bg-[#f0f2f5] px-3 py-2 rounded-2xl rounded-tl-sm text-[13px] text-gray-800 max-w-[90%]">
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full mr-1 ${SENTIMENT_COLORS[comment.Sentiment]}`}>
+                      {comment.Sentiment}
+                    </span>
+                    <span className="leading-tight">{comment['Comment Text']}</span>
+                    <span className="block text-[10px] text-gray-400 mt-1">{comment.Date}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+  
         </div>
-
-      </div>
+      )}
     </div>
   );
 };

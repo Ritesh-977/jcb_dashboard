@@ -33,17 +33,19 @@ export default function SentimentDashboard() {
       setSentimentData([]);
       try {
         const query = market ? `?market=${encodeURIComponent(market)}` : '';
-        const [{ sentiment }, comments] = await Promise.all([
+        const [{ sentiment, kpi }, comments] = await Promise.all([
           apiFetch(`/dashboard/all${query}`),
           apiFetch(`/comments/${query}`),
         ]);
 
+        const getKpi = (metric) => kpi.find((k) => k.Metric === metric)?.Value ?? 0;
+
         setSentimentData(sentiment);
         setTotals({
-          comments: sentiment.reduce((s, r) => s + (r.Total ?? 0), 0),
-          positive: sentiment.reduce((s, r) => s + (r.Positive ?? 0), 0),
-          neutral:  sentiment.reduce((s, r) => s + (r.Neutral ?? 0), 0),
-          negative: sentiment.reduce((s, r) => s + (r.Negative ?? 0), 0),
+          comments: getKpi('Total Comments'),
+          positive: getKpi('Positive Comments'),
+          neutral:  getKpi('Neutral Comments'),
+          negative: getKpi('Negative Comments'),
         });
 
         const tagCounts = comments.reduce((acc, c) => {

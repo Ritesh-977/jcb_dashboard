@@ -24,57 +24,63 @@ const FacebookComments = ({ comments }) => {
         <span className="font-semibold text-gray-800">Facebook</span>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
-
-        {/* Left: Post image + engagement stats */}
-        <div className="flex flex-col">
-          <div className="rounded-lg overflow-hidden border border-gray-100 mb-3 aspect-[4/5]">
-            <img src={promoImage} alt="FB Post" className="w-full h-full object-cover" />
-          </div>
-
-          <div className="flex justify-between items-center text-xs text-gray-500 py-2 border-b border-gray-100">
-            <div className="flex items-center gap-1">
-              <span className="text-blue-500 bg-blue-100 rounded-full w-5 h-5 flex items-center justify-center">👍</span>
-              <span className="text-red-500 bg-red-100 rounded-full w-5 h-5 flex items-center justify-center -ml-2">❤️</span>
-              <span className="text-yellow-500 bg-yellow-100 rounded-full w-5 h-5 flex items-center justify-center -ml-2">😲</span>
-              <span className="ml-1">{totalLikes}</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span>{totalComments} 💬</span>
-              <span>{totalShares} ↗️</span>
-            </div>
-          </div>
+      {(!comments || comments.length === 0) ? (
+        <div className="flex-1 flex items-center justify-center text-gray-400 text-sm py-8">
+          No data available.
         </div>
-
-        {/* Right: Scrollable comment timeline */}
-        <div className="relative pl-2 max-h-[500px] overflow-y-auto pr-2">
-          {/* Vertical timeline line */}
-          <div className="absolute left-6 top-4 bottom-8 w-[2px] bg-gray-100 z-0" />
-
-          <div className="flex flex-col gap-4 relative z-10">
-            {comments.map((comment, index) => (
-              <div key={index} className="flex gap-3 items-start">
-                {/* Avatar */}
-                <div className="w-8 h-8 rounded-full bg-[#0b1d3d] flex-shrink-0 mt-1 flex items-center justify-center border-2 border-white shadow-sm">
-                  <span className="text-[10px] font-bold text-white">
-                    {comment['Comment Text'].charAt(0).toUpperCase()}
-                  </span>
-                </div>
-
-                {/* Bubble */}
-                <div className="bg-[#f0f2f5] px-3 py-2 rounded-2xl rounded-tl-sm text-[13px] text-gray-800 max-w-[90%]">
-                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full mr-1 ${SENTIMENT_COLORS[comment.Sentiment]}`}>
-                    {comment.Sentiment}
-                  </span>
-                  <span className="leading-tight">{comment['Comment Text']}</span>
-                  <span className="block text-[10px] text-gray-400 mt-1">{comment.Date}</span>
-                </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
+  
+          {/* Left: Post image + engagement stats */}
+          <div className="flex flex-col">
+            <div className="rounded-lg overflow-hidden border border-gray-100 mb-3 aspect-[4/5]">
+              <img src={promoImage} alt="FB Post" className="w-full h-full object-cover" />
+            </div>
+  
+            <div className="flex justify-between items-center text-xs text-gray-500 py-2 border-b border-gray-100">
+              <div className="flex items-center gap-1">
+                <span className="text-blue-500 bg-blue-100 rounded-full w-5 h-5 flex items-center justify-center">👍</span>
+                <span className="text-red-500 bg-red-100 rounded-full w-5 h-5 flex items-center justify-center -ml-2">❤️</span>
+                <span className="text-yellow-500 bg-yellow-100 rounded-full w-5 h-5 flex items-center justify-center -ml-2">😲</span>
+                <span className="ml-1">{totalLikes}</span>
               </div>
-            ))}
+              <div className="flex items-center gap-3">
+                <span>{totalComments} 💬</span>
+                <span>{totalShares} ↗️</span>
+              </div>
+            </div>
           </div>
+  
+          {/* Right: Scrollable comment timeline */}
+          <div className="relative pl-2 max-h-[500px] overflow-y-auto pr-2">
+            {/* Vertical timeline line */}
+            <div className="absolute left-6 top-4 bottom-8 w-[2px] bg-gray-100 z-0" />
+  
+            <div className="flex flex-col gap-4 relative z-10">
+              {comments.map((comment, index) => (
+                <div key={index} className="flex gap-3 items-start">
+                  {/* Avatar */}
+                  <div className="w-8 h-8 rounded-full bg-[#0b1d3d] flex-shrink-0 mt-1 flex items-center justify-center border-2 border-white shadow-sm">
+                    <span className="text-[10px] font-bold text-white">
+                      {comment['Comment Text'].charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+  
+                  {/* Bubble */}
+                  <div className="bg-[#f0f2f5] px-3 py-2 rounded-2xl rounded-tl-sm text-[13px] text-gray-800 max-w-[90%]">
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full mr-1 ${SENTIMENT_COLORS[comment.Sentiment]}`}>
+                      {comment.Sentiment}
+                    </span>
+                    <span className="leading-tight">{comment['Comment Text']}</span>
+                    <span className="block text-[10px] text-gray-400 mt-1">{comment.Date}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+  
         </div>
-
-      </div>
+      )}
     </div>
   );
 };

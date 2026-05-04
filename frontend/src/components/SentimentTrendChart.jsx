@@ -5,6 +5,11 @@ const SentimentTrendChart = ({ data }) => (
   <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-300 h-full min-h-[500px] flex flex-col">
     <h3 className="text-sm font-bold text-gray-600 mb-6">Sentiment Trend</h3>
 
+    {(!data || data.length === 0) ? (
+      <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
+        No data available.
+      </div>
+    ) : (
     <div className="flex-1 flex flex-col lg:flex-row items-stretch w-full">
       {/* Chart */}
       <div className="flex-1 w-full h-[450px]">
@@ -53,7 +58,8 @@ const SentimentTrendChart = ({ data }) => (
           <span className="text-xs font-bold text-[#fbbf24]">Confusing</span>
         </div>
       </div>
-    </div>
+      </div>
+    )}
   </div>
 );
 

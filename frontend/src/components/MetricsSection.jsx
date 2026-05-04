@@ -8,7 +8,7 @@ const MetricCard = ({ value, label, comparison, valueColor = 'text-[#2bb5e8]' })
   </div>
 );
 
-const MetricsSection = ({ kpiData, sentimentData }) => {
+const MetricsSection = ({ kpiData, sentimentData, totalShares = 0 }) => {
   const get = (metric) => kpiData.find((k) => k.Metric === metric)?.Value ?? 0;
 
   const totalLikes = get('Total Likes');
@@ -16,8 +16,6 @@ const MetricsSection = ({ kpiData, sentimentData }) => {
   const netSentiment = `${Math.round(get('Net Sentiment %') * 100)}%`;
   const positivePct = `${Math.round(get('Positive %') * 100)}%`;
   const negativePct = `${Math.round(get('Negative %') * 100)}%`;
-
-  const totalShares = sentimentData.reduce((sum, row) => sum + (row.Total ?? 0), 0);
 
   return (
     <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-300 flex-1">
@@ -27,24 +25,30 @@ const MetricsSection = ({ kpiData, sentimentData }) => {
           <option>vs B1F1Ramen Kuroda</option>
         </select>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-3">
-        <MetricCard value={totalLikes.toLocaleString()} label="Total Likes" comparison="(+1.6% vs D1F1 Ramen Kuroda)" />
-        <MetricCard value={totalComments.toLocaleString()} label="Total Comments" comparison="(+4.5% vs D1F1 Ramen Kuroda)" />
-        <MetricCard value={totalShares.toLocaleString()} label="Shares" comparison="(+3.2% vs D1F1 Ramen Kuroda)" />
-        <MetricCard value={`+${netSentiment}`} label="Net Sentiment" comparison="(+3.3% vs D1F1 Ramen Kuroda)" valueColor="text-white" />
-        <div className="flex flex-col gap-3 min-h-[120px]">
-          <div className="bg-[#0b1d3d] rounded-lg p-3 text-white flex-1 flex flex-col justify-center">
-            <div className="text-lg font-bold text-[#2bb5e8] leading-tight">{positivePct}</div>
-            <div className="text-xs font-semibold leading-tight mb-1">Positive Sentiments</div>
-            <div className="text-[9px] text-[#facc15]">(+1.2% vs D1F1 Ramen Kuroda)</div>
-          </div>
-          <div className="bg-[#0b1d3d] rounded-lg p-3 text-white flex-1 flex flex-col justify-center">
-            <div className="text-lg font-bold text-[#2bb5e8] leading-tight">{negativePct}</div>
-            <div className="text-xs font-semibold leading-tight mb-1">Negative Sentiments</div>
-            <div className="text-[9px] text-[#facc15]">(+5.3% vs D1F1 Ramen Kuroda)</div>
+      {(!kpiData || kpiData.length === 0) ? (
+        <div className="flex-1 flex items-center justify-center text-gray-400 text-sm py-8">
+          No data available.
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-3">
+          <MetricCard value={totalLikes.toLocaleString()} label="Total Likes" comparison="(+1.6% vs D1F1 Ramen Kuroda)" />
+          <MetricCard value={totalComments.toLocaleString()} label="Total Comments" comparison="(+4.5% vs D1F1 Ramen Kuroda)" />
+          <MetricCard value={totalShares.toLocaleString()} label="Shares" comparison="(+3.2% vs D1F1 Ramen Kuroda)" />
+          <MetricCard value={`+${netSentiment}`} label="Net Sentiment" comparison="(+3.3% vs D1F1 Ramen Kuroda)" valueColor="text-white" />
+          <div className="flex flex-col gap-3 min-h-[120px]">
+            <div className="bg-[#0b1d3d] rounded-lg p-3 text-white flex-1 flex flex-col justify-center">
+              <div className="text-lg font-bold text-[#2bb5e8] leading-tight">{positivePct}</div>
+              <div className="text-xs font-semibold leading-tight mb-1">Positive Sentiments</div>
+              <div className="text-[9px] text-[#facc15]">(+1.2% vs D1F1 Ramen Kuroda)</div>
+            </div>
+            <div className="bg-[#0b1d3d] rounded-lg p-3 text-white flex-1 flex flex-col justify-center">
+              <div className="text-lg font-bold text-[#2bb5e8] leading-tight">{negativePct}</div>
+              <div className="text-xs font-semibold leading-tight mb-1">Negative Sentiments</div>
+              <div className="text-[9px] text-[#facc15]">(+5.3% vs D1F1 Ramen Kuroda)</div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

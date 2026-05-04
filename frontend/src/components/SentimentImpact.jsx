@@ -13,28 +13,38 @@ const WordCloud = ({ words }) => (
   </div>
 );
 
-const SentimentImpact = ({ positiveWords, negativeWords }) => (
-  <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-300 mt-4 md:mt-6">
-    <h3 className="text-xs md:text-sm font-bold text-gray-600 mb-4 md:mb-6">Sentiments Impact Analysis</h3>
+const SentimentImpact = ({ positiveWords, negativeWords }) => {
+  const hasData = (positiveWords && positiveWords.length > 0) || (negativeWords && negativeWords.length > 0);
 
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 relative">
-      <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-px border-r border-dashed border-gray-300" />
+  return (
+    <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-300 mt-4 md:mt-6">
+      <h3 className="text-xs md:text-sm font-bold text-gray-600 mb-4 md:mb-6">Sentiments Impact Analysis</h3>
 
-      <div className="flex flex-col items-center">
-        <div className="bg-[#4de79e] w-full py-1.5 px-3 md:px-4 text-center text-xs md:text-sm font-bold text-[#0b1d3d] mb-4 md:mb-8 rounded-sm">
-          POSITIVE KEYWORDS
+      {!hasData ? (
+        <div className="flex items-center justify-center text-gray-400 text-sm py-8">
+          No data available.
         </div>
-        <WordCloud words={positiveWords} />
-      </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 relative">
+          <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-px border-r border-dashed border-gray-300" />
 
-      <div className="flex flex-col items-center">
-        <div className="bg-[#ef4444] w-full py-1.5 px-3 md:px-4 text-center text-xs md:text-sm font-bold text-[#0b1d3d] mb-4 md:mb-8 rounded-sm">
-          NEGATIVE KEYWORDS
+          <div className="flex flex-col items-center">
+            <div className="bg-[#4de79e] w-full py-1.5 px-3 md:px-4 text-center text-xs md:text-sm font-bold text-[#0b1d3d] mb-4 md:mb-8 rounded-sm">
+              POSITIVE KEYWORDS
+            </div>
+            {positiveWords.length > 0 ? <WordCloud words={positiveWords} /> : <span className="text-gray-400 text-sm">No keywords</span>}
+          </div>
+
+          <div className="flex flex-col items-center">
+            <div className="bg-[#ef4444] w-full py-1.5 px-3 md:px-4 text-center text-xs md:text-sm font-bold text-[#0b1d3d] mb-4 md:mb-8 rounded-sm">
+              NEGATIVE KEYWORDS
+            </div>
+            {negativeWords.length > 0 ? <WordCloud words={negativeWords} /> : <span className="text-gray-400 text-sm">No keywords</span>}
+          </div>
         </div>
-        <WordCloud words={negativeWords} />
-      </div>
+      )}
     </div>
-  </div>
-);
+  );
+};
 
 export default SentimentImpact;

@@ -37,26 +37,34 @@ const PlatformSentiment = ({ sentimentData }) => (
   <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 border border-gray-300 flex flex-col h-full">
     <h3 className="text-xs md:text-sm font-bold text-gray-600 mb-4 md:mb-8">Platform Sentiment Distribution</h3>
 
-    <div className="flex flex-col gap-3 md:gap-6 relative">
-      <div className="hidden sm:block absolute left-24 md:left-28 top-[-10px] bottom-[-10px] w-px bg-gray-200 z-0" />
-      <div className="relative z-10 flex flex-col gap-3 md:gap-6">
-        {sentimentData.map((row) => (
-          <StackedBarRow
-            key={row.Platform}
-            platform={row.Platform}
-            positivePct={Math.round(row['% Positive'])}
-            neutralPct={Math.round(row['% Neutral'])}
-            negativePct={Math.round(row['% Negative'])}
-          />
-        ))}
+    {(!sentimentData || sentimentData.length === 0) ? (
+      <div className="flex-1 flex items-center justify-center text-gray-400 text-sm py-8">
+        No data available.
       </div>
-    </div>
+    ) : (
+      <>
+        <div className="flex flex-col gap-3 md:gap-6 relative">
+          <div className="hidden sm:block absolute left-24 md:left-28 top-[-10px] bottom-[-10px] w-px bg-gray-200 z-0" />
+          <div className="relative z-10 flex flex-col gap-3 md:gap-6">
+            {sentimentData.map((row) => (
+              <StackedBarRow
+                key={row.Platform}
+                platform={row.Platform}
+                positivePct={Math.round(row['% Positive'])}
+                neutralPct={Math.round(row['% Neutral'])}
+                negativePct={Math.round(row['% Negative'])}
+              />
+            ))}
+          </div>
+        </div>
 
-    <div className="flex flex-wrap justify-center gap-3 md:gap-6 mt-6 md:mt-10 text-[8px] md:text-[10px] text-gray-600 font-semibold">
-      <div className="flex items-center gap-1.5"><span className="w-2 h-2 bg-[#4de79e] rounded-sm" />Positive</div>
-      <div className="flex items-center gap-1.5"><span className="w-2 h-2 bg-[#fbbf24] rounded-sm" />Neutral</div>
-      <div className="flex items-center gap-1.5"><span className="w-2 h-2 bg-[#ef4444] rounded-sm" />Negative</div>
-    </div>
+        <div className="flex flex-wrap justify-center gap-3 md:gap-6 mt-6 md:mt-10 text-[8px] md:text-[10px] text-gray-600 font-semibold">
+          <div className="flex items-center gap-1.5"><span className="w-2 h-2 bg-[#4de79e] rounded-sm" />Positive</div>
+          <div className="flex items-center gap-1.5"><span className="w-2 h-2 bg-[#fbbf24] rounded-sm" />Neutral</div>
+          <div className="flex items-center gap-1.5"><span className="w-2 h-2 bg-[#ef4444] rounded-sm" />Negative</div>
+        </div>
+      </>
+    )}
   </div>
 );
 
