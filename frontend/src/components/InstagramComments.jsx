@@ -52,7 +52,7 @@ const InstagramComments = ({ comments }) => {
           </div>
   
           {/* Right: Scrollable comment timeline */}
-          <div className="relative pl-2 max-h-[500px] overflow-y-auto pr-2">
+          <div className="relative pl-2 max-h-[500px] overflow-y-auto pr-2 overflow-x-hidden">
             <div className="absolute left-6 top-4 bottom-8 w-[2px] bg-gray-100 z-0" />
   
             <div className="flex flex-col gap-4 relative z-10">
@@ -64,7 +64,7 @@ const InstagramComments = ({ comments }) => {
                     </span>
                   </div>
   
-                  <div className="bg-[#f0f2f5] px-3 py-2 rounded-2xl rounded-tl-sm text-[13px] text-gray-800 max-w-[90%]">
+                  <div className="bg-[#f0f2f5] px-3 py-2 rounded-2xl rounded-tl-sm text-[13px] text-gray-800 max-w-[calc(100%-3rem)] break-words">
                     <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full mr-1 ${SENTIMENT_COLORS[comment.Sentiment]}`}>
                       {comment.Sentiment}
                     </span>
