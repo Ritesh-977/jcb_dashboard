@@ -1,30 +1,39 @@
-from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+"""
+etl.py — CSV Upload API Route
+
+Handles multipart file upload, delegates to csv_processor for:
+- Dynamic column detection (what categories exist in this CSV?)
+- Multi-table routing (posts, kpis, comments)
+- Upsert/append semantics (sequential uploads merge, not overwrite)
+
+Protected by admin auth. Returns detailed processing report.
+"""
+
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
 from app.db import get_snowflake_connection
+from app.middleware import require_admin
 from app.routes import dashboard as dashboard_module
+from app.services.csv_processor import (
+    normalize_headers,
+    detect_categories,
+    process_posts,
+    process_kpis,
+    process_comments,
+    stage_raw_ingestion,
+)
 import csv
 import uuid
 from io import StringIO
-from datetime import datetime
 
 router = APIRouter(prefix="/api/etl", tags=["ETL"])
 
-
-def _to_date(val):
-    if not val or str(val).strip() in ('', 'N/A', 'null', 'NULL', 'None'):
-        return None
-    for fmt in ('%d/%m/%Y %H:%M:%S', '%d/%m/%Y', '%Y-%m-%d %H:%M:%S', '%Y-%m-%d', '%m/%d/%Y'):
-        try:
-            return datetime.strptime(str(val).strip(), fmt).date()
-        except ValueError:
-            continue
-    return None
-
-
-def _to_int(val):
-    try:
-        return int(float(str(val).strip()))
-    except (ValueError, TypeError):
-        return 0
+# Common market code → name lookup
+MARKET_NAMES = {
+    "PH": "Philippines", "US": "United States", "JP": "Japan",
+    "TH": "Thailand", "SG": "Singapore", "MY": "Malaysia",
+    "ID": "Indonesia", "VN": "Vietnam", "TW": "Taiwan",
+    "HK": "Hong Kong", "KR": "South Korea", "AU": "Australia",
+}
 
 
 @router.post("/upload-csv")
@@ -32,16 +41,32 @@ async def upload_csv(
     file: UploadFile = File(...),
     targetCountry: str = Form(...),
     campaignName: str = Form(None),
+    _: dict = Depends(require_admin),
 ):
     """
-    Upload CSV → stage in raw_ingestion → transform into posts + authors.
-    Also auto-creates the market if it doesn't exist yet.
-    """
-    if not file.filename.endswith('.csv'):
-        raise HTTPException(status_code=400, detail="Only CSV files allowed")
+    Upload a CSV file → dynamically detect columns → route to correct tables.
 
+    Flow:
+      1. Parse CSV with encoding fallback (UTF-8 → cp1258)
+      2. Normalize all headers via alias map (fuzzy matching)
+      3. Detect which categories are present (posts / kpis / comments)
+      4. Ensure market & campaign exist in DB
+      5. Stage raw data into raw_ingestion (audit trail)
+      6. Route to category-specific processors with upsert/append logic
+      7. Return detailed processing report
+
+    Supports:
+      - Consolidated CSVs (all data in one file) → routes to ALL matching tables
+      - Fragmented CSVs (KPIs separate from Comments) → sequential uploads append
+      - Missing columns → gracefully default to None/0
+      - Heterogeneous headers → fuzzy-matched to canonical field names
+    """
+    # ── Validate file type ──
+    if not file.filename.endswith('.csv'):
+        raise HTTPException(status_code=400, detail="Only CSV files are allowed")
+
+    # ── Read & decode CSV ──
     content = await file.read()
-    # Try UTF-8 first, fall back to cp1258 for Vietnamese data
     try:
         csv_text = content.decode('utf-8')
     except UnicodeDecodeError:
@@ -49,30 +74,42 @@ async def upload_csv(
 
     rows = list(csv.DictReader(StringIO(csv_text)))
     if not rows:
-        raise HTTPException(status_code=400, detail="CSV file is empty")
+        raise HTTPException(status_code=400, detail="CSV file is empty or has no data rows")
 
     batch_id = str(uuid.uuid4())[:8]
     market_code = targetCountry.upper().strip()
+    market_name = MARKET_NAMES.get(market_code, market_code)
 
-    # Detect common market name → code mappings
-    market_names = {
-        "PH": "Philippines", "US": "United States", "JP": "Japan",
-        "TH": "Thailand", "SG": "Singapore", "MY": "Malaysia",
-        "ID": "Indonesia", "VN": "Vietnam", "TW": "Taiwan",
-        "HK": "Hong Kong", "KR": "South Korea", "AU": "Australia",
-    }
-    market_name = market_names.get(market_code, market_code)
+    # ── Normalize headers & detect categories ──
+    raw_headers = list(rows[0].keys())
+    field_map = normalize_headers(raw_headers)
+    categories = detect_categories(field_map)
+    canonical_fields = list(set(field_map.values()))
+
+    if not categories:
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "message": "Could not detect any recognizable data category (Posts, KPIs, or Comments) in the CSV headers.",
+                "headers_found": raw_headers,
+                "hint": "Ensure your CSV has columns like: Title, Detail, Link (for Posts), "
+                        "Metric Name, Metric Value (for KPIs), or Comment Text, Comment Date (for Comments).",
+            },
+        )
+
+    # ── Database operations ──
+    category_counts = {}
 
     with get_snowflake_connection() as conn:
         cursor = conn.cursor()
 
-        # --- 1. Ensure market exists ---
+        # 1. Ensure market exists (MERGE = create if missing)
         cursor.execute("""
             MERGE INTO markets t USING (SELECT %s AS mc) s ON t.market_code = s.mc
             WHEN NOT MATCHED THEN INSERT (market_code, market_name) VALUES (%s, %s)
         """, (market_code, market_code, market_name))
 
-        # --- 2. Ensure campaign exists (if provided) ---
+        # 2. Ensure campaign exists (if provided)
         campaign_id = None
         if campaignName:
             cursor.execute("""
@@ -89,110 +126,25 @@ async def upload_csv(
             if row:
                 campaign_id = row[0]
 
-        # --- 3. Stage raw data into raw_ingestion ---
-        stage_params = []
-        for row in rows:
-            stage_params.append((
-                row.get('Title'), row.get('Detail'), row.get('Link'),
-                row.get('Source'), _to_date(row.get('Update date')),
-                _to_date(row.get('Publish date')),
-                row.get('Sentiment', '').strip().capitalize(),
-                _to_int(row.get('Ranking')), row.get('Media type'),
-                row.get('Tags'),
-                row.get('Country', market_code),
-                row.get('Language'),
-                _to_int(row.get('Audience')), _to_int(row.get('Reach')),
-                _to_int(row.get('Interactions')), row.get('Notes'),
-                row.get('Author name'), row.get('Author handle (@username)', row.get('Author handle')),
-                row.get('Author URL'), row.get('Gender'),
-                row.get('Age'), row.get('Bio'), row.get('City'),
-                batch_id,
-            ))
+        # 3. Stage raw data into raw_ingestion (audit trail, all rows)
+        stage_raw_ingestion(rows, field_map, market_code, batch_id, cursor)
 
-        cursor.executemany("""
-            INSERT INTO raw_ingestion (
-                title, detail, link, source, update_date, publish_date,
-                sentiment, ranking, media_type, tags, country, language,
-                audience, reach, interactions, notes,
-                author_name, author_handle, author_url, gender,
-                age, bio, city, batch_id
-            ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-        """, stage_params)
+        # 4. Route to category-specific processors
+        if "posts" in categories:
+            count = process_posts(rows, field_map, market_code, campaign_id, batch_id, cursor)
+            category_counts["posts"] = count
 
-        # --- 4. Transform: raw_ingestion → posts ---
-        post_params = []
-        for row in rows:
-            sentiment = row.get('Sentiment', '').strip().capitalize()
-            post_params.append((
-                market_code, campaign_id,
-                _to_date(row.get('Publish date')),
-                _to_date(row.get('Update date')),
-                row.get('Media type'),       # platform
-                row.get('Source'),            # source_name
-                row.get('Title'),             # title
-                row.get('Detail'),            # content
-                row.get('Link'),              # link
-                sentiment,
-                0, 0, 0,                      # likes, comments_count, shares
-                _to_int(row.get('Interactions')),  # total_engagement
-                _to_int(row.get('Audience')),
-                _to_int(row.get('Reach')),
-                row.get('Media type'),
-                row.get('Tags'),
-                row.get('Language'),
-                _to_int(row.get('Ranking')),
-                row.get('Notes'),
-            ))
+        if "kpis" in categories:
+            count = process_kpis(rows, field_map, market_code, batch_id, cursor)
+            category_counts["kpis"] = count
 
-        cursor.executemany("""
-            INSERT INTO posts (
-                market_code, campaign_id, publish_date, update_date,
-                platform, source_name, title, content, link, sentiment,
-                likes, comments_count, shares, total_engagement,
-                audience, reach, media_type, tags, language, ranking, notes
-            ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-        """, post_params)
-
-        # --- 5. Extract authors for posts that have author data ---
-        # Get the post IDs we just inserted (by batch link matching)
-        links = [row.get('Link') for row in rows if row.get('Link')]
-        if links:
-            placeholders = ','.join(['%s'] * len(links))
-            cursor.execute(f"""
-                SELECT id, link FROM posts
-                WHERE link IN ({placeholders})
-                ORDER BY id DESC
-            """, links)
-            link_to_post_id = {}
-            for r in cursor.fetchall():
-                if r[1] not in link_to_post_id:
-                    link_to_post_id[r[1]] = r[0]
-
-            author_params = []
-            for row in rows:
-                link = row.get('Link')
-                post_id = link_to_post_id.get(link)
-                author_name = row.get('Author name')
-                if post_id and author_name:
-                    author_params.append((
-                        post_id, author_name,
-                        row.get('Author handle (@username)', row.get('Author handle')),
-                        row.get('Author URL'),
-                        row.get('Gender'), row.get('Age'),
-                        row.get('Bio'), row.get('City'),
-                    ))
-
-            if author_params:
-                cursor.executemany("""
-                    INSERT INTO authors (
-                        post_id, author_name, author_handle, author_url,
-                        gender, age_range, bio, city
-                    ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
-                """, author_params)
+        if "comments" in categories:
+            count = process_comments(rows, field_map, market_code, batch_id, cursor)
+            category_counts["comments"] = count
 
         conn.commit()
 
-    # Bust cached markets list and data cache so the dashboard picks up new markets immediately
+    # ── Bust caches so dashboard picks up new data immediately ──
     dashboard_module._markets_cache["data"] = None
     dashboard_module._markets_cache["ts"] = 0
     dashboard_module._cache.clear()
@@ -203,4 +155,7 @@ async def upload_csv(
         "market": market_code,
         "campaign": campaignName,
         "rows_processed": len(rows),
+        "categories_detected": sorted(categories),
+        "category_counts": category_counts,
+        "columns_detected": sorted(canonical_fields),
     }

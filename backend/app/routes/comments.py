@@ -65,3 +65,4 @@ def get_comments(
     ]
     _cache[cache_key] = {"data": result, "ts": now}
     return result
+
