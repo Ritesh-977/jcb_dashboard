@@ -469,3 +469,55 @@ def stage_raw_ingestion(rows: list[dict], field_map: dict, market_code: str,
             age, bio, city, batch_id
         ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
     """, stage_params)
+
+
+def sync_comments_to_posts(cursor, market_code: str) -> None:
+    """
+    Auto-link any unlinked comments to the closest post and update post metrics.
+    """
+    # 1. Fetch unlinked comments for this market
+    cursor.execute("""
+        SELECT id, comment_date, platform 
+        FROM comments 
+        WHERE post_id IS NULL AND market_code = %s
+    """, (market_code,))
+    unlinked = cursor.fetchall()
+
+    if unlinked:
+        # Fetch posts for this market
+        cursor.execute("SELECT id, publish_date, platform FROM posts WHERE market_code = %s", (market_code,))
+        posts = cursor.fetchall()
+        
+        updates = []
+        for cid, c_date, c_platform in unlinked:
+            best_post_id = None
+            min_diff = None
+            
+            for pid, p_date, p_platform in posts:
+                if p_platform and c_platform and p_platform.upper() == c_platform.upper():
+                    diff = abs((p_date - c_date).days) if p_date and c_date else 9999
+                    if min_diff is None or diff < min_diff:
+                        min_diff = diff
+                        best_post_id = pid
+            
+            if best_post_id is not None:
+                updates.append((best_post_id, cid))
+                
+        if updates:
+            cursor.executemany("UPDATE comments SET post_id = %s WHERE id = %s", updates)
+            
+    # Always refresh comments_count on posts for this market
+    cursor.execute("UPDATE posts SET comments_count = 0, total_engagement = COALESCE(likes,0) + COALESCE(shares,0) WHERE market_code = %s", (market_code,))
+    cursor.execute("""
+        MERGE INTO posts p
+        USING (
+            SELECT post_id, COUNT(*) as cnt
+            FROM comments
+            WHERE post_id IS NOT NULL AND market_code = %s
+            GROUP BY post_id
+        ) c
+        ON p.id = c.post_id
+        WHEN MATCHED THEN
+            UPDATE SET p.comments_count = c.cnt,
+                       p.total_engagement = COALESCE(p.likes,0) + c.cnt + COALESCE(p.shares,0)
+    """, (market_code,))

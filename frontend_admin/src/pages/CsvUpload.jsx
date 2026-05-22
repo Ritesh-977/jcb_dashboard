@@ -465,20 +465,7 @@ export default function CsvUpload() {
             </div>
           )}
 
-          {/* Info callout */}
-          <div style={{
-            margin: '0 1rem 1rem',
-            padding: '0.75rem 0.85rem',
-            borderRadius: 8,
-            background: 'var(--primary-light)',
-            border: '1px solid #c7d2fe',
-            fontSize: '0.78rem',
-            color: '#3730a3',
-            lineHeight: 1.5,
-          }}>
-            <strong>💡 Tip:</strong> You can upload multiple CSVs for the same market.
-            KPIs will be upserted (updated if they exist), while Posts and Comments will be appended.
-          </div>
+
         </div>
 
       </div>

@@ -142,6 +142,10 @@ async def upload_csv(
             count = process_comments(rows, field_map, market_code, batch_id, cursor)
             category_counts["comments"] = count
 
+        if "posts" in categories or "comments" in categories:
+            from app.services.csv_processor import sync_comments_to_posts
+            sync_comments_to_posts(cursor, market_code)
+
         conn.commit()
 
     # ── Bust caches so dashboard picks up new data immediately ──
