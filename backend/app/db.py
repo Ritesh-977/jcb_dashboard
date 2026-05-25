@@ -20,7 +20,7 @@ def init_connection_pool():
             authenticator="oauth",
             token=token,
             warehouse="my_basic_wh",
-            database="my_dashboard",
+            database="my_dashboard_db",
             schema="public",
             client_session_keep_alive=True
         )
@@ -32,7 +32,7 @@ def init_connection_pool():
             user=os.getenv("SNOWFLAKE_USER"),
             password=os.getenv("SNOWFLAKE_PASSWORD"),
             warehouse="my_basic_wh",
-            database="my_dashboard",
+            database="my_dashboard_db",
             schema="public",
             client_session_keep_alive=True
         )
