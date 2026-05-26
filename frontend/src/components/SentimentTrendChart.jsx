@@ -1,7 +1,10 @@
 import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-const SentimentTrendChart = ({ data }) => (
+const SentimentTrendChart = ({ data, keywords = [] }) => {
+  const colors = ['#42d4f4', '#10b981', '#fbbf24', '#ef4444'];
+  
+  return (
   <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-300 h-full min-h-[500px] flex flex-col">
     <h3 className="text-sm font-bold text-gray-600 mb-6">Sentiment Trend</h3>
 
@@ -41,26 +44,35 @@ const SentimentTrendChart = ({ data }) => (
               contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
             />
 
-            <Line type="monotone" dataKey="worth"     name="Worth it"  stroke="#42d4f4" strokeWidth={3} dot={false} activeDot={{ r: 6 }} />
-            <Line type="monotone" dataKey="confusing" name="Confusing" stroke="#fbbf24" strokeWidth={3} dot={false} activeDot={{ r: 6 }} />
+            {keywords.map((kw, i) => (
+              <Line
+                key={kw}
+                type="monotone"
+                dataKey={kw}
+                name={kw}
+                stroke={colors[i % colors.length]}
+                strokeWidth={3}
+                dot={false}
+                activeDot={{ r: 6 }}
+              />
+            ))}
           </LineChart>
         </ResponsiveContainer>
       </div>
 
       {/* Right-side legend */}
       <div className="flex lg:flex-col justify-center gap-6 pt-4 lg:pt-0 lg:pl-6 lg:min-w-[120px]">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-[3px] bg-[#42d4f4] rounded-full" />
-          <span className="text-xs font-bold text-[#42d4f4]">Worth it</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-[3px] bg-[#fbbf24] rounded-full" />
-          <span className="text-xs font-bold text-[#fbbf24]">Confusing</span>
-        </div>
+        {keywords.map((kw, i) => (
+          <div key={kw} className="flex items-center gap-2">
+            <div className="w-6 h-[3px] rounded-full" style={{ backgroundColor: colors[i % colors.length] }} />
+            <span className="text-xs font-bold" style={{ color: colors[i % colors.length] }}>{kw}</span>
+          </div>
+        ))}
       </div>
       </div>
     )}
   </div>
-);
+  );
+};
 
 export default SentimentTrendChart;

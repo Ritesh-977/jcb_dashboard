@@ -1,5 +1,4 @@
 import React from 'react';
-import promoImage from '../assets/insta.jpg';
 
 const SENTIMENT_COLORS = {
   Positive: 'bg-[#4de79e] text-[#0b1d3d]',
@@ -7,10 +6,18 @@ const SENTIMENT_COLORS = {
   Negative: 'bg-[#ef4444] text-white',
 };
 
-const InstagramComments = ({ comments }) => {
-  const totalLikes    = comments.filter(c => c.Sentiment === 'Positive').length * 26;
-  const totalComments = comments.length;
-  const totalShares   = Math.floor(comments.length * 3.25);
+const InstagramComments = ({ comments, postLink }) => {
+  console.log('InstagramComments received postLink:', postLink);
+  
+  const getEmbedUrl = (link) => {
+    if (!link) return null;
+    // Ensure link ends with / before adding embed
+    const cleanLink = link.endsWith('/') ? link : `${link}/`;
+    return `${cleanLink}embed/`;
+  };
+
+  const embedUrl = getEmbedUrl(postLink);
+  console.log('Instagram embedUrl:', embedUrl);
 
   return (
     <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 flex flex-col h-full">
@@ -33,26 +40,40 @@ const InstagramComments = ({ comments }) => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
   
-          {/* Left: Post image + dark action bar */}
+          {/* Left: Embedded Instagram Post */}
           <div className="flex flex-col">
-            <div className="overflow-hidden border border-gray-100 aspect-square">
-              <img src={promoImage} alt="IG Post" className="w-full h-full object-cover" />
-            </div>
-  
-            <div className="bg-[#1a1a1a] text-white px-4 py-2 flex justify-between items-center text-lg">
-              <div className="flex items-center gap-3">
-                <span className="flex items-center gap-1 cursor-pointer">
-                  🤍 <span className="text-sm">{totalLikes}</span>
-                </span>
-                <span className="cursor-pointer">💬 <span className="text-sm">{totalComments}</span></span>
-                <span className="cursor-pointer">↗️ <span className="text-sm">{totalShares}</span></span>
+            {embedUrl ? (
+              <div className="flex flex-col gap-2">
+                <div className="rounded-lg overflow-hidden border-2 border-[#E4405F] mb-3 bg-white">
+                  <iframe 
+                    key={postLink}
+                    src={embedUrl}
+                    width="100%"
+                    height="700"
+                    style={{ border: 'none', overflow: 'hidden', background: 'white' }}
+                    scrolling="no"
+                    frameBorder="0"
+                    allowFullScreen={true}
+                  ></iframe>
+                </div>
+                <a 
+                  href={postLink} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-xs text-pink-600 hover:underline text-center"
+                >
+                  Open post in new tab →
+                </a>
               </div>
-              <span className="cursor-pointer">📌</span>
-            </div>
+            ) : (
+              <div className="flex items-center justify-center border-2 border-gray-200 rounded-lg p-8 text-gray-400 text-sm mb-3 h-[700px]">
+                Select an Instagram post to view
+              </div>
+            )}
           </div>
   
           {/* Right: Scrollable comment timeline */}
-          <div className="relative pl-2 max-h-[500px] overflow-y-auto pr-2 overflow-x-hidden">
+          <div className="relative pl-2 max-h-[700px] overflow-y-auto pr-2 overflow-x-hidden">
             <div className="absolute left-6 top-4 bottom-8 w-[2px] bg-gray-100 z-0" />
   
             <div className="flex flex-col gap-4 relative z-10">

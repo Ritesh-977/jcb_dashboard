@@ -86,6 +86,7 @@ CREATE TABLE IF NOT EXISTS comments (
     sentiment      VARCHAR(50),
     keyword_tag    VARCHAR(100),
     keyword_type   VARCHAR(50),
+    post_link      VARCHAR(500),
     created_at     TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()
 )
 CLUSTER BY (market_code, comment_date);

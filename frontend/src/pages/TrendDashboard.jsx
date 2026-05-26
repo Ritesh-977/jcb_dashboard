@@ -9,6 +9,7 @@ import { useMarket } from '../context/MarketContext';
 export default function TrendDashboard() {
   const today = new Date();
   const [trendData, setTrendData] = useState([]);
+  const [keywords, setKeywords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dateFrom, setDateFrom] = useState(null);
@@ -41,20 +42,51 @@ export default function TrendDashboard() {
 
         const comments = await apiFetch(`/comments/${query}`);
 
+        // Count keyword frequencies
+        const keywordCounts = comments.reduce((acc, c) => {
+          const tag = c['Keyword Tag'];
+          const type = c['Keyword Type'];
+          if (tag && type) {
+            if (!acc[tag]) acc[tag] = { count: 0, type };
+            acc[tag].count++;
+          }
+          return acc;
+        }, {});
+
+        // Get top 2 positive and negative keywords
+        const positive = Object.entries(keywordCounts)
+          .filter(([_, v]) => v.type === 'Positive')
+          .sort((a, b) => b[1].count - a[1].count)
+          .slice(0, 2)
+          .map(([k]) => k);
+        
+        const negative = Object.entries(keywordCounts)
+          .filter(([_, v]) => v.type === 'Negative')
+          .sort((a, b) => b[1].count - a[1].count)
+          .slice(0, 2)
+          .map(([k]) => k);
+
+        const topKeywords = [...positive, ...negative];
+        setKeywords(topKeywords);
+
         const sortedDates = [...new Set(comments.map(c => c.Date))].sort();
 
         const dailyCounts = sortedDates.map(date => {
           const day = comments.filter(c => c.Date === date);
-          return {
-            date: new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
-            worth:     day.filter(c => c['Keyword Tag'] === 'Worth it').length,
-            confusing: day.filter(c => c['Keyword Tag'] === 'Confusing').length,
-          };
+          const counts = { date: new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) };
+          topKeywords.forEach(kw => {
+            counts[kw] = day.filter(c => c['Keyword Tag'] === kw).length;
+          });
+          return counts;
         });
 
         setTrendData(dailyCounts.reduce((acc, day) => {
-          const prev = acc.at(-1) ?? { worth: 0, confusing: 0 };
-          acc.push({ date: day.date, worth: prev.worth + day.worth, confusing: prev.confusing + day.confusing });
+          const prev = acc.at(-1) ?? {};
+          const cumulative = { date: day.date };
+          topKeywords.forEach(kw => {
+            cumulative[kw] = (prev[kw] || 0) + day[kw];
+          });
+          acc.push(cumulative);
           return acc;
         }, []));
 
@@ -128,7 +160,7 @@ export default function TrendDashboard() {
           No data available for the selected date range.
         </div>
       ) : (
-        <SentimentTrendChart data={trendData} />
+        <SentimentTrendChart data={trendData} keywords={keywords} />
       )}
     </div>
   );

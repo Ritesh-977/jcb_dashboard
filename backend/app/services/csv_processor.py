@@ -101,6 +101,8 @@ HEADER_ALIASES = {
     "keyword_type":                 "keyword_type",
     "keyword_category":             "keyword_type",
     "comment_platform":             "comment_platform",
+    "comment_link":                 "comment_link",
+    "comment_post_link":            "comment_link",
 }
 
 # ─── Category Signatures ──────────────────────────────────────────────────────
@@ -120,7 +122,7 @@ CATEGORY_SIGNATURES = {
     },
     "comments": {
         "comment_text", "comment_date", "keyword_tag",
-        "keyword_type", "comment_sentiment", "comment_platform",
+        "keyword_type", "comment_sentiment", "comment_platform", "comment_link",
     },
 }
 
@@ -411,6 +413,7 @@ def process_comments(rows: list[dict], field_map: dict, market_code: str,
         comment_date = _to_date(g("comment_date") or g("publish_date"))
         keyword_tag = g("keyword_tag")
         keyword_type = g("keyword_type")
+        post_link = g("comment_link") or g("link")
 
         cursor.execute("""
             MERGE INTO comments t
@@ -421,12 +424,12 @@ def process_comments(rows: list[dict], field_map: dict, market_code: str,
             AND t.comment_text = s.ct
             WHEN NOT MATCHED THEN
                 INSERT (post_id, market_code, comment_date, platform,
-                        comment_text, sentiment, keyword_tag, keyword_type)
-                VALUES (NULL, %s, %s, %s, %s, %s, %s, %s)
+                        comment_text, sentiment, keyword_tag, keyword_type, post_link)
+                VALUES (NULL, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (
             market_code, comment_date, platform, comment_text,
             market_code, comment_date, platform, comment_text,
-            sentiment, keyword_tag, keyword_type,
+            sentiment, keyword_tag, keyword_type, post_link,
         ))
         count += 1
 
@@ -473,9 +476,20 @@ def stage_raw_ingestion(rows: list[dict], field_map: dict, market_code: str,
 
 def sync_comments_to_posts(cursor, market_code: str) -> None:
     """
-    Auto-link any unlinked comments to the closest post and update post metrics.
+    Auto-link any unlinked comments to posts using post_link or closest date match.
     """
-    # 1. Fetch unlinked comments for this market
+    # 1. Link comments by post_link if available
+    cursor.execute("""
+        UPDATE comments c
+        SET post_id = p.id
+        FROM posts p
+        WHERE c.post_id IS NULL 
+          AND c.post_link IS NOT NULL 
+          AND c.post_link = p.link
+          AND c.market_code = %s
+    """, (market_code,))
+    
+    # 2. Fetch remaining unlinked comments for this market
     cursor.execute("""
         SELECT id, comment_date, platform 
         FROM comments 

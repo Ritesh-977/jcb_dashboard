@@ -1,5 +1,4 @@
 import React from 'react';
-import promoImage from '../assets/promo-image.jpeg';
 
 const SENTIMENT_COLORS = {
   Positive: 'bg-[#4de79e] text-[#0b1d3d]',
@@ -7,10 +6,29 @@ const SENTIMENT_COLORS = {
   Negative: 'bg-[#ef4444] text-white',
 };
 
-const FacebookComments = ({ comments }) => {
-  const totalLikes    = comments.filter(c => c.Sentiment === 'Positive').length * 26;
-  const totalComments = comments.length;
-  const totalShares   = Math.floor(comments.length * 3.25);
+const FacebookComments = ({ comments, postLink }) => {
+  console.log('FacebookComments received postLink:', postLink);
+  
+  const getEmbedUrl = (link) => {
+    if (!link) return null;
+    
+    // Clean up Facebook link format
+    let cleanLink = link;
+    
+    // Handle format: /pageId/posts/pageId_postId -> /pageId/posts/postId
+    const match = link.match(/\/posts\/(\d+)_(\d+)/);
+    if (match) {
+      const pageId = match[1];
+      const postId = match[2];
+      cleanLink = `https://www.facebook.com/${pageId}/posts/${postId}`;
+    }
+    
+    console.log('Cleaned FB link:', cleanLink);
+    return `https://www.facebook.com/plugins/post.php?href=${encodeURIComponent(cleanLink)}&width=500&show_text=true`;
+  };
+
+  const embedUrl = getEmbedUrl(postLink);
+  console.log('Facebook embedUrl:', embedUrl);
 
   return (
     <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 flex flex-col h-full">
@@ -31,28 +49,41 @@ const FacebookComments = ({ comments }) => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
   
-          {/* Left: Post image + engagement stats */}
+          {/* Left: Embedded Facebook Post */}
           <div className="flex flex-col">
-            <div className="rounded-lg overflow-hidden border border-gray-100 mb-3 aspect-[4/5]">
-              <img src={promoImage} alt="FB Post" className="w-full h-full object-cover" />
-            </div>
-  
-            <div className="flex justify-between items-center text-xs text-gray-500 py-2 border-b border-gray-100">
-              <div className="flex items-center gap-1">
-                <span className="text-blue-500 bg-blue-100 rounded-full w-5 h-5 flex items-center justify-center">👍</span>
-                <span className="text-red-500 bg-red-100 rounded-full w-5 h-5 flex items-center justify-center -ml-2">❤️</span>
-                <span className="text-yellow-500 bg-yellow-100 rounded-full w-5 h-5 flex items-center justify-center -ml-2">😲</span>
-                <span className="ml-1">{totalLikes}</span>
+            {embedUrl ? (
+              <div className="flex flex-col gap-2">
+                <div className="rounded-lg overflow-hidden border-2 border-[#1877F2] mb-3 bg-white">
+                  <iframe 
+                    key={postLink}
+                    src={embedUrl}
+                    width="100%"
+                    height="700"
+                    style={{ border: 'none', overflow: 'hidden', background: 'white' }}
+                    scrolling="no"
+                    frameBorder="0"
+                    allowFullScreen={true}
+                    allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+                  ></iframe>
+                </div>
+                <a 
+                  href={postLink} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-xs text-blue-600 hover:underline text-center"
+                >
+                  Open post in new tab →
+                </a>
               </div>
-              <div className="flex items-center gap-3">
-                <span>{totalComments} 💬</span>
-                <span>{totalShares} ↗️</span>
+            ) : (
+              <div className="flex items-center justify-center border-2 border-gray-200 rounded-lg p-8 text-gray-400 text-sm mb-3 h-[700px]">
+                Select a Facebook post to view
               </div>
-            </div>
+            )}
           </div>
   
           {/* Right: Scrollable comment timeline */}
-          <div className="relative pl-2 max-h-[500px] overflow-y-auto pr-2 overflow-x-hidden">
+          <div className="relative pl-2 max-h-[700px] overflow-y-auto pr-2 overflow-x-hidden">
             {/* Vertical timeline line */}
             <div className="absolute left-6 top-4 bottom-8 w-[2px] bg-gray-100 z-0" />
   

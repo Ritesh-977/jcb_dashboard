@@ -28,7 +28,7 @@ function parseHeadersFromFile(file) {
 const CATEGORY_SIGNATURES = {
   Posts: ['title', 'detail', 'content', 'link', 'url', 'source', 'publish_date', 'publish date', 'platform', 'sentiment', 'media_type', 'media type'],
   KPIs: ['metric_name', 'metric name', 'metric', 'kpi', 'kpi_name', 'metric_value', 'metric value', 'value', 'kpi_value', 'report_date', 'report date'],
-  Comments: ['comment_text', 'comment text', 'comment', 'comment_date', 'comment date', 'keyword_tag', 'keyword tag', 'keyword_type', 'keyword type'],
+  Comments: ['comment_text', 'comment text', 'comment', 'comment_date', 'comment date', 'keyword_tag', 'keyword tag', 'keyword_type', 'keyword type', 'comment_link', 'comment link', 'post_link', 'post link'],
 };
 
 function detectCategoriesClient(headers) {
