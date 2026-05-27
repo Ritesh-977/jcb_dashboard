@@ -5,14 +5,19 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def setup_new_account():
-    conn = snowflake.connector.connect(
-        account=os.getenv("SNOWFLAKE_ACCOUNT"),
-        user=os.getenv("SNOWFLAKE_USER"),
-        password=os.getenv("SNOWFLAKE_PASSWORD"),
-        warehouse="my_basic_wh",
-        database="my_dashboard_db",
-        schema="public"
-    )
+    authenticator = os.getenv("SNOWFLAKE_AUTHENTICATOR", "snowflake")
+    conn_params = {
+        "account": os.getenv("SNOWFLAKE_ACCOUNT"),
+        "user": os.getenv("SNOWFLAKE_USER"),
+        "warehouse": "my_basic_wh",
+        "database": "my_dashboard_db",
+        "schema": "public",
+        "authenticator": authenticator
+    }
+    if authenticator == "snowflake":
+        conn_params["password"] = os.getenv("SNOWFLAKE_PASSWORD")
+    
+    conn = snowflake.connector.connect(**conn_params)
     
     cursor = conn.cursor()
     

@@ -10,6 +10,8 @@ export default function TrendDashboard() {
   const today = new Date();
   const [trendData, setTrendData] = useState([]);
   const [keywords, setKeywords] = useState([]);
+  const [allKeywords, setAllKeywords] = useState([]);
+  const [selectedKeywords, setSelectedKeywords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dateFrom, setDateFrom] = useState(null);
@@ -30,6 +32,19 @@ export default function TrendDashboard() {
       setDateTo(date);
     }
   };
+
+  const handleKeywordToggle = (keyword) => {
+    setSelectedKeywords(prev => {
+      if (prev.includes(keyword)) {
+        return prev.filter(k => k !== keyword);
+      } else {
+        return [...prev, keyword];
+      }
+    });
+  };
+
+  const [showPositiveDropdown, setShowPositiveDropdown] = useState(false);
+  const [showNegativeDropdown, setShowNegativeDropdown] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -68,14 +83,21 @@ export default function TrendDashboard() {
 
         const topKeywords = [...positive, ...negative];
         setKeywords(topKeywords);
+        setSelectedKeywords(topKeywords);
+
+        // Store all keywords with their types
+        const allKw = Object.entries(keywordCounts)
+          .map(([k, v]) => ({ keyword: k, type: v.type, count: v.count }))
+          .sort((a, b) => b.count - a.count);
+        setAllKeywords(allKw);
 
         const sortedDates = [...new Set(comments.map(c => c.Date))].sort();
 
         const dailyCounts = sortedDates.map(date => {
           const day = comments.filter(c => c.Date === date);
           const counts = { date: new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) };
-          topKeywords.forEach(kw => {
-            counts[kw] = day.filter(c => c['Keyword Tag'] === kw).length;
+          allKw.forEach(({ keyword }) => {
+            counts[keyword] = day.filter(c => c['Keyword Tag'] === keyword).length;
           });
           return counts;
         });
@@ -83,8 +105,8 @@ export default function TrendDashboard() {
         setTrendData(dailyCounts.reduce((acc, day) => {
           const prev = acc.at(-1) ?? {};
           const cumulative = { date: day.date };
-          topKeywords.forEach(kw => {
-            cumulative[kw] = (prev[kw] || 0) + day[kw];
+          allKw.forEach(({ keyword }) => {
+            cumulative[keyword] = (prev[keyword] || 0) + day[keyword];
           });
           acc.push(cumulative);
           return acc;
@@ -155,12 +177,87 @@ export default function TrendDashboard() {
           )}
         </div>
       </div>
+
+      {/* Keyword Selection */}
+      {allKeywords.length > 0 && (
+        <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-300 mb-4">
+          <h4 className="text-sm font-bold text-gray-600 mb-3">Select Keywords to Display</h4>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Positive Keywords Dropdown */}
+            <div className="relative">
+              <label className="block text-xs font-medium text-gray-600 mb-2">Positive Keywords</label>
+              <button
+                onClick={() => setShowPositiveDropdown(!showPositiveDropdown)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-left bg-white hover:bg-gray-50 flex items-center justify-between"
+              >
+                <span className="text-gray-700">
+                  {selectedKeywords.filter(k => allKeywords.find(kw => kw.keyword === k)?.type === 'Positive').length} selected
+                </span>
+                <span className="text-gray-400">▼</span>
+              </button>
+              {showPositiveDropdown && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  {allKeywords.filter(kw => kw.type === 'Positive').map(({ keyword, count }) => (
+                    <label
+                      key={keyword}
+                      className="flex items-center px-3 py-2 hover:bg-green-50 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedKeywords.includes(keyword)}
+                        onChange={() => handleKeywordToggle(keyword)}
+                        className="mr-2 w-4 h-4 text-green-600 rounded focus:ring-green-500"
+                      />
+                      <span className="text-sm text-gray-700 flex-1">{keyword}</span>
+                      <span className="text-xs text-gray-500">({count})</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Negative Keywords Dropdown */}
+            <div className="relative">
+              <label className="block text-xs font-medium text-gray-600 mb-2">Negative Keywords</label>
+              <button
+                onClick={() => setShowNegativeDropdown(!showNegativeDropdown)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-left bg-white hover:bg-gray-50 flex items-center justify-between"
+              >
+                <span className="text-gray-700">
+                  {selectedKeywords.filter(k => allKeywords.find(kw => kw.keyword === k)?.type === 'Negative').length} selected
+                </span>
+                <span className="text-gray-400">▼</span>
+              </button>
+              {showNegativeDropdown && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                  {allKeywords.filter(kw => kw.type === 'Negative').map(({ keyword, count }) => (
+                    <label
+                      key={keyword}
+                      className="flex items-center px-3 py-2 hover:bg-red-50 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedKeywords.includes(keyword)}
+                        onChange={() => handleKeywordToggle(keyword)}
+                        className="mr-2 w-4 h-4 text-red-600 rounded focus:ring-red-500"
+                      />
+                      <span className="text-sm text-gray-700 flex-1">{keyword}</span>
+                      <span className="text-xs text-gray-500">({count})</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {trendData.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-100 text-center text-gray-400 text-sm">
           No data available for the selected date range.
         </div>
       ) : (
-        <SentimentTrendChart data={trendData} keywords={keywords} />
+        <SentimentTrendChart data={trendData} keywords={selectedKeywords} />
       )}
     </div>
   );

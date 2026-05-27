@@ -24,6 +24,12 @@ export default function CommentsDashboard() {
         const data = await apiFetch(`/comments/posts?${params}`);
         console.log('Posts fetched:', data);
         setPosts(data);
+        // Auto-select first post
+        if (data && data.length > 0) {
+          setSelectedPost(String(data[0].post_id));
+        } else {
+          setSelectedPost('');
+        }
       } catch (err) {
         console.error('Failed to fetch posts:', err);
       }
@@ -116,8 +122,8 @@ export default function CommentsDashboard() {
 
       {!loading && !error && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-          {fbComments.length > 0 && <FacebookComments comments={fbComments} postLink={fbPostLink} />}
-          {igComments.length > 0 && <InstagramComments comments={igComments} postLink={igPostLink} />}
+          <FacebookComments comments={fbComments} postLink={fbPostLink} />
+          <InstagramComments comments={igComments} postLink={igPostLink} />
         </div>
       )}
     </div>

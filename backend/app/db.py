@@ -3,6 +3,8 @@ import snowflake.connector
 from snowflake.connector.connection import SnowflakeConnection
 from fastapi import HTTPException
 from contextlib import contextmanager
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.backends import default_backend
 
 _connection_pool = None
 
@@ -14,8 +16,6 @@ def init_connection_pool():
         with open(token_file_path, "r") as f:
             token = f.read().strip()
         _connection_pool = snowflake.connector.connect(
-            host=os.getenv("SNOWFLAKE_HOST"),
-            port=os.getenv("SNOWFLAKE_PORT"),
             account=os.getenv("SNOWFLAKE_ACCOUNT"),
             authenticator="oauth",
             token=token,
@@ -25,17 +25,47 @@ def init_connection_pool():
             client_session_keep_alive=True
         )
     else:
-        _connection_pool = snowflake.connector.connect(
-            host=os.getenv("SNOWFLAKE_HOST"),
-            port=int(os.getenv("SNOWFLAKE_PORT", 443)),
-            account=os.getenv("SNOWFLAKE_ACCOUNT"),
-            user=os.getenv("SNOWFLAKE_USER"),
-            password=os.getenv("SNOWFLAKE_PASSWORD"),
-            warehouse="my_basic_wh",
-            database="my_dashboard_db",
-            schema="public",
-            client_session_keep_alive=True
-        )
+        private_key_path = os.getenv("SNOWFLAKE_PRIVATE_KEY_PATH")
+        
+        if private_key_path and os.path.exists(private_key_path):
+            # Use key-pair authentication
+            with open(private_key_path, "rb") as key_file:
+                private_key = serialization.load_pem_private_key(
+                    key_file.read(),
+                    password=None,
+                    backend=default_backend()
+                )
+            
+            pkb = private_key.private_bytes(
+                encoding=serialization.Encoding.DER,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption()
+            )
+            
+            _connection_pool = snowflake.connector.connect(
+                account=os.getenv("SNOWFLAKE_ACCOUNT"),
+                user=os.getenv("SNOWFLAKE_USER"),
+                private_key=pkb,
+                warehouse="my_basic_wh",
+                database="my_dashboard_db",
+                schema="public",
+                client_session_keep_alive=True
+            )
+        else:
+            # Fallback to password/browser auth
+            authenticator = os.getenv("SNOWFLAKE_AUTHENTICATOR", "snowflake")
+            conn_params = {
+                "account": os.getenv("SNOWFLAKE_ACCOUNT"),
+                "user": os.getenv("SNOWFLAKE_USER"),
+                "warehouse": "my_basic_wh",
+                "database": "my_dashboard_db",
+                "schema": "public",
+                "client_session_keep_alive": True,
+                "authenticator": authenticator
+            }
+            if authenticator == "snowflake":
+                conn_params["password"] = os.getenv("SNOWFLAKE_PASSWORD")
+            _connection_pool = snowflake.connector.connect(**conn_params)
 
 @contextmanager
 def get_snowflake_connection():

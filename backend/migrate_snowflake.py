@@ -11,16 +11,20 @@ OLD_PASSWORD = input("Enter OLD Snowflake password: ")
 NEW_ACCOUNT = os.getenv("SNOWFLAKE_ACCOUNT")
 NEW_USER = os.getenv("SNOWFLAKE_USER")
 NEW_PASSWORD = os.getenv("SNOWFLAKE_PASSWORD")
+NEW_AUTHENTICATOR = os.getenv("SNOWFLAKE_AUTHENTICATOR", "snowflake")
 
-def get_connection(account, user, password):
-    return snowflake.connector.connect(
-        account=account,
-        user=user,
-        password=password,
-        warehouse="my_basic_wh",
-        database="my_dashboard",
-        schema="public"
-    )
+def get_connection(account, user, password, authenticator="snowflake"):
+    conn_params = {
+        "account": account,
+        "user": user,
+        "warehouse": "my_basic_wh",
+        "database": "my_dashboard",
+        "schema": "public",
+        "authenticator": authenticator
+    }
+    if authenticator == "snowflake":
+        conn_params["password"] = password
+    return snowflake.connector.connect(**conn_params)
 
 def export_data(old_conn):
     cursor = old_conn.cursor()
@@ -82,7 +86,7 @@ print("✓ Connected to OLD account")
 data = export_data(old_conn)
 old_conn.close()
 
-new_conn = get_connection(NEW_ACCOUNT, NEW_USER, NEW_PASSWORD)
+new_conn = get_connection(NEW_ACCOUNT, NEW_USER, NEW_PASSWORD, NEW_AUTHENTICATOR)
 print("✓ Connected to NEW account")
 
 import_data(new_conn, data)
