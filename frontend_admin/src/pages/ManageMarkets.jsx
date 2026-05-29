@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import toast, { Toaster } from 'react-hot-toast';
 import Layout from '../components/Layout';
 import { apiFetch } from '../api';
@@ -165,6 +165,19 @@ export default function ManageMarkets() {
   const [search, setSearch]           = useState('');
   const [confirmMarket, setConfirmMarket] = useState(null); // market object to delete
   const [deleting, setDeleting]       = useState(false);
+  const pendingDeletions = useRef(new Map());
+
+  // Cleanup on unmount - execute all pending deletions instantly
+  useEffect(() => {
+    return () => {
+      pendingDeletions.current.forEach((timeoutId, code) => {
+        clearTimeout(timeoutId);
+        // Execute fetch blindly (fire and forget on unmount)
+        apiFetch(`/admin/markets/${code}`, { method: 'DELETE' }).catch(() => {});
+      });
+      pendingDeletions.current.clear();
+    };
+  }, []);
 
   // Initial fetch
   useEffect(() => {
@@ -199,21 +212,54 @@ export default function ManageMarkets() {
 
   async function handleDeleteConfirm() {
     if (!confirmMarket) return;
-    setDeleting(true);
-    try {
-      await apiFetch(`/admin/markets/${confirmMarket.code}`, { method: 'DELETE' });
-      // Optimistic local update
-      setMarkets((prev) => prev.filter((m) => m.code !== confirmMarket.code));
-      toast.success(
-        `Market "${confirmMarket.name}" deleted successfully`,
-        { duration: 4000, icon: '🗑️' }
-      );
-      setConfirmMarket(null);
-    } catch (err) {
-      toast.error(err.message || 'Failed to delete market', { duration: 5000 });
-    } finally {
-      setDeleting(false);
+    const marketToDelete = confirmMarket;
+    setConfirmMarket(null);
+
+    // Optimistic local update
+    setMarkets((prev) => prev.filter((m) => m.code !== marketToDelete.code));
+    
+    toast((t) => (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <span>Market "{marketToDelete.name}" deleted.</span>
+        <button
+          onClick={() => {
+            toast.dismiss(t.id);
+            undoDelete(marketToDelete);
+          }}
+          style={{
+            background: '#fff', color: '#dc2626', border: '1px solid #fecaca',
+            borderRadius: '4px', padding: '0.2rem 0.5rem', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600
+          }}
+        >
+          Undo
+        </button>
+      </div>
+    ), { duration: 10000, id: `del-${marketToDelete.code}` });
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        await apiFetch(`/admin/markets/${marketToDelete.code}`, { method: 'DELETE' });
+        pendingDeletions.current.delete(marketToDelete.code);
+      } catch (err) {
+        toast.error(`Failed to permanently delete market ${marketToDelete.name}`);
+      }
+    }, 10000);
+
+    pendingDeletions.current.set(marketToDelete.code, timeoutId);
+  }
+
+  function undoDelete(market) {
+    const timeoutId = pendingDeletions.current.get(market.code);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      pendingDeletions.current.delete(market.code);
     }
+    setMarkets(prev => {
+      if (prev.some(m => m.code === market.code)) return prev;
+      const next = [...prev, market];
+      next.sort((a, b) => a.code.localeCompare(b.code));
+      return next;
+    });
   }
 
   return (

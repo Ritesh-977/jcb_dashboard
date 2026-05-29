@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import toast, { Toaster } from 'react-hot-toast';
 import Layout from '../components/Layout';
 
 const API_BASE = import.meta.env.PROD ? import.meta.env.VITE_API_URL : 'http://localhost:8000';
@@ -8,7 +9,22 @@ export default function ManageCampaigns() {
   const [markets, setMarkets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [deleteStatus, setDeleteStatus] = useState(null);
+  const pendingDeletions = useRef(new Map());
+
+  // Cleanup on unmount - execute all pending deletions instantly
+  useEffect(() => {
+    return () => {
+      pendingDeletions.current.forEach((timeoutId, id) => {
+        clearTimeout(timeoutId);
+        const token = localStorage.getItem('access_token');
+        fetch(`${API_BASE}/admin/campaigns/${id}`, {
+          method: 'DELETE',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }).catch(() => {});
+      });
+      pendingDeletions.current.clear();
+    };
+  }, []);
 
   const fetchData = async () => {
     setLoading(true);
@@ -45,26 +61,64 @@ export default function ManageCampaigns() {
       return;
     }
 
-    try {
-      const token = localStorage.getItem('access_token');
-      const res = await fetch(`${API_BASE}/admin/campaigns/${campaignId}`, {
-        method: 'DELETE',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+    const campaignToDelete = campaigns.find(c => c.id === campaignId);
+    
+    // Optimistic local update
+    setCampaigns(prev => prev.filter(c => c.id !== campaignId));
 
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.detail || 'Failed to delete campaign');
+    toast((t) => (
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <span>Campaign "{campaignName}" deleted.</span>
+        <button
+          onClick={() => {
+            toast.dismiss(t.id);
+            undoDelete(campaignToDelete);
+          }}
+          style={{
+            background: '#fff', color: '#dc2626', border: '1px solid #fecaca',
+            borderRadius: '4px', padding: '0.2rem 0.5rem', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 600
+          }}
+        >
+          Undo
+        </button>
+      </div>
+    ), { duration: 10000, id: `del-camp-${campaignId}` });
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        const res = await fetch(`${API_BASE}/admin/campaigns/${campaignId}`, {
+          method: 'DELETE',
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.detail || 'Failed to delete campaign');
+        }
+        pendingDeletions.current.delete(campaignId);
+      } catch (err) {
+        toast.error(err.message || `Failed to permanently delete campaign ${campaignName}`);
       }
+    }, 10000);
 
-      setDeleteStatus({ type: 'success', message: `Campaign "${campaignName}" deleted successfully` });
-      fetchData(); // Refresh the list
-    } catch (err) {
-      setDeleteStatus({ type: 'error', message: err.message });
-    }
-
-    setTimeout(() => setDeleteStatus(null), 5000);
+    pendingDeletions.current.set(campaignId, timeoutId);
   };
+
+  function undoDelete(campaign) {
+    if (!campaign) return;
+    const timeoutId = pendingDeletions.current.get(campaign.id);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      pendingDeletions.current.delete(campaign.id);
+    }
+    setCampaigns(prev => {
+      if (prev.some(c => c.id === campaign.id)) return prev;
+      const next = [...prev, campaign];
+      next.sort((a, b) => a.id - b.id);
+      return next;
+    });
+  }
 
   const getMarketName = (marketCode) => {
     const market = markets.find(m => m.code === marketCode);
@@ -93,6 +147,23 @@ export default function ManageCampaigns() {
 
   return (
     <Layout title="Manage Campaigns">
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          style: {
+            fontFamily: 'Inter, sans-serif',
+            fontSize: '0.875rem',
+            borderRadius: '10px',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          },
+          success: {
+            style: { border: '1px solid #bbf7d0', background: '#f0fdf4', color: '#166534' },
+          },
+          error: {
+            style: { border: '1px solid #fecaca', background: '#fef2f2', color: '#dc2626' },
+          },
+        }}
+      />
       <div className="card">
         <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
           <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text)' }}>
@@ -104,11 +175,6 @@ export default function ManageCampaigns() {
         </div>
 
         <div style={{ padding: '1.5rem' }}>
-          {deleteStatus && (
-            <div className={`alert ${deleteStatus.type === 'success' ? 'alert-success' : 'alert-error'}`} style={{ marginBottom: '1rem' }}>
-              {deleteStatus.message}
-            </div>
-          )}
 
           {campaigns.length === 0 ? (
             <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
