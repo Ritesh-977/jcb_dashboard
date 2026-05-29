@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useMarket } from '../context/MarketContext';
+import { useCampaign } from '../context/CampaignContext';
 
 const NAV_ITEMS = [
   { to: '/',          label: 'Campaign Overview',  permission: 'view_kpi',       icon: <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7m-9 2v8m4-8v8m5 0H4" /></svg> },
@@ -15,6 +16,7 @@ const Sidebar = () => {
   const navigate = useNavigate();
   const { logout, auth } = useAuth();
   const { market, setMarket, markets } = useMarket();
+  const { campaign, setCampaign, campaigns } = useCampaign();
   const permissions = auth?.permissions ?? [];
 
   const handleLogout = () => {
@@ -54,14 +56,39 @@ const Sidebar = () => {
             value={market}
             onChange={(e) => setMarket(e.target.value)}
             className="w-full bg-white/10 text-white text-xs rounded-md px-2 py-1.5 outline-none border border-white/20 hover:bg-white/20 transition-colors cursor-pointer"
+            style={{ color: 'white' }}
           >
-            <option value="" className="text-gray-800">All Markets</option>
+            <option value="" style={{ backgroundColor: '#fff', color: '#1f2937' }}>All Markets</option>
             {markets.map((m) => (
-              <option key={m.code || m} value={m.code || m} className="text-gray-800">
+              <option key={m.code || m} value={m.code || m} style={{ backgroundColor: '#fff', color: '#1f2937' }}>
                 {m.name || m} ({m.code || m})
               </option>
             ))}
           </select>
+        </div>
+      )}
+
+      {/* Campaign Selector */}
+      {!collapsed && (
+        <div className="px-3 py-3 border-b border-white/10">
+          <label className="block text-[10px] font-semibold text-blue-300 uppercase tracking-wider mb-1.5">Campaign</label>
+          <select
+            value={campaign || ''}
+            onChange={(e) => setCampaign(e.target.value)}
+            className="w-full bg-white/10 text-white text-xs rounded-md px-2 py-1.5 outline-none border border-white/20 hover:bg-white/20 transition-colors cursor-pointer"
+            style={{ color: 'white' }}
+            disabled={campaigns.length === 0}
+          >
+            <option value="" style={{ backgroundColor: '#fff', color: '#1f2937' }}>All Campaigns</option>
+            {campaigns.map((c) => (
+              <option key={c.id} value={String(c.id)} style={{ backgroundColor: '#fff', color: '#1f2937' }}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          {campaigns.length === 0 && market && (
+            <div className="text-[9px] text-blue-200 mt-1 opacity-70">No campaigns for this market</div>
+          )}
         </div>
       )}
 

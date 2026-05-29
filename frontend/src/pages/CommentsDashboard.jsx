@@ -4,6 +4,7 @@ import InstagramComments from '../components/InstagramComments';
 import { apiFetch } from '../api';
 import S from '../components/Skeleton';
 import { useMarket } from '../context/MarketContext';
+import { useCampaign } from '../context/CampaignContext';
 
 export default function CommentsDashboard() {
   const [comments, setComments] = useState([]);
@@ -14,6 +15,7 @@ export default function CommentsDashboard() {
   const [sentiment, setSentiment] = useState('');
   const [selectedPost, setSelectedPost] = useState('');
   const { market } = useMarket();
+  const { campaign } = useCampaign();
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -21,6 +23,7 @@ export default function CommentsDashboard() {
         const params = new URLSearchParams();
         if (platform) params.append('platform', platform);
         if (market) params.append('market', market);
+        if (campaign) params.append('campaign', campaign);
         const data = await apiFetch(`/comments/posts?${params}`);
         console.log('Posts fetched:', data);
         setPosts(data);
@@ -35,7 +38,7 @@ export default function CommentsDashboard() {
       }
     };
     fetchPosts();
-  }, [platform, market]);
+  }, [platform, market, campaign]);
 
   useEffect(() => {
     const fetchComments = async () => {
@@ -46,6 +49,7 @@ export default function CommentsDashboard() {
         if (platform) params.append('platform', platform);
         if (sentiment) params.append('sentiment', sentiment);
         if (market) params.append('market', market);
+        if (campaign) params.append('campaign', campaign);
         if (selectedPost) params.append('post_id', selectedPost);
 
         const data = await apiFetch(`/comments/?${params}`);
@@ -58,7 +62,7 @@ export default function CommentsDashboard() {
     };
 
     fetchComments();
-  }, [platform, sentiment, market, selectedPost]);
+  }, [platform, sentiment, market, campaign, selectedPost]);
 
   const fbComments = comments.filter(c => c.Platform === 'Facebook');
   const igComments = comments.filter(c => c.Platform === 'Instagram');

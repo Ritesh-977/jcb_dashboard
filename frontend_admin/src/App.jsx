@@ -7,6 +7,7 @@ import AdminUsers from './pages/AdminUsers';
 import ChangePassword from './pages/ChangePassword';
 import CsvUpload from './pages/CsvUpload';
 import ManageMarkets from './pages/ManageMarkets';
+import ManageCampaigns from './pages/ManageCampaigns';
 
 function AdminRoute() {
   const { auth } = useAuth();
@@ -27,6 +28,7 @@ function App() {
               <Route path="/change-password" element={<ChangePassword />} />
               <Route path="/upload" element={<CsvUpload />} />
               <Route path="/markets" element={<ManageMarkets />} />
+              <Route path="/campaigns" element={<ManageCampaigns />} />
             </Route>
             <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>

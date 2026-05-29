@@ -5,6 +5,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { apiFetch } from '../api';
 import S from '../components/Skeleton';
 import { useMarket } from '../context/MarketContext';
+import { useCampaign } from '../context/CampaignContext';
 
 export default function TrendDashboard() {
   const today = new Date();
@@ -17,6 +18,7 @@ export default function TrendDashboard() {
   const [dateFrom, setDateFrom] = useState(null);
   const [dateTo, setDateTo] = useState(null);
   const { market } = useMarket();
+  const { campaign } = useCampaign();
 
   const handleDateFromChange = (date) => {
     setDateFrom(date);
@@ -53,6 +55,7 @@ export default function TrendDashboard() {
         if (dateFrom) params.append('date_from', dateFrom.toISOString().split('T')[0]);
         if (dateTo) params.append('date_to', dateTo.toISOString().split('T')[0]);
         if (market) params.append('market', market);
+        if (campaign) params.append('campaign', campaign);
         const query = params.toString() ? `?${params}` : '';
 
         const comments = await apiFetch(`/comments/${query}`);
@@ -119,7 +122,7 @@ export default function TrendDashboard() {
       }
     };
     load();
-  }, [dateFrom, dateTo, market]);
+  }, [dateFrom, dateTo, market, campaign]);
 
   if (loading) return (
     <div className="p-6 max-w-[1400px] mx-auto">

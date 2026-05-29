@@ -154,7 +154,7 @@ export default function CsvUpload() {
   // ── Upload handler ──
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!marketCode || !file) return;
+    if (!marketCode || !campaignName.trim() || !file) return;
 
     setLoading(true);
     setStatus(null);
@@ -163,9 +163,7 @@ export default function CsvUpload() {
     const form = new FormData();
     form.append('file', file);
     form.append('targetCountry', marketCode);
-    if (campaignName.trim()) {
-      form.append('campaignName', campaignName.trim());
-    }
+    form.append('campaignName', campaignName.trim());
 
     // Simulate upload progress (real progress would need XMLHttpRequest)
     const progressInterval = setInterval(() => {
@@ -174,7 +172,7 @@ export default function CsvUpload() {
 
     try {
       const token = localStorage.getItem('access_token');
-      const res = await fetch(`${API_BASE}/api/etl/upload-csv`, {
+      const res = await fetch(`${API_BASE}/etl/upload-csv`, {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: form,
@@ -293,7 +291,7 @@ export default function CsvUpload() {
             {/* Campaign Name */}
             <div className="form-field" style={{ marginBottom: 0 }}>
               <label className="form-label">
-                Campaign Name <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span>
+                Campaign Name <span style={{ color: '#ef4444' }}>*</span>
               </label>
               <input
                 id="csv-campaign-input"
@@ -302,6 +300,7 @@ export default function CsvUpload() {
                 value={campaignName}
                 onChange={(e) => setCampaignName(e.target.value)}
                 placeholder="e.g. B1F1 Coffee Bean Q2 2026"
+                required
               />
             </div>
 
@@ -390,9 +389,9 @@ export default function CsvUpload() {
             )}
 
             {/* Validation message */}
-            {!marketCode && file && (
+            {(!marketCode || !campaignName.trim()) && file && (
               <div className="alert alert-error" style={{ padding: '0.6rem 0.85rem', fontSize: '0.8rem', marginBottom: 0 }}>
-                Please select a target market before uploading.
+                Please select a target market and enter a campaign name before uploading.
               </div>
             )}
 
@@ -416,8 +415,8 @@ export default function CsvUpload() {
               id="csv-upload-button"
               type="submit"
               className="btn btn-primary"
-              disabled={loading || !marketCode || !file}
-              style={{ opacity: (!marketCode || !file) ? 0.5 : 1, cursor: (!marketCode || !file) ? 'not-allowed' : 'pointer' }}
+              disabled={loading || !marketCode || !campaignName.trim() || !file}
+              style={{ opacity: (!marketCode || !campaignName.trim() || !file) ? 0.5 : 1, cursor: (!marketCode || !campaignName.trim() || !file) ? 'not-allowed' : 'pointer' }}
             >
               {loading ? 'Processing…' : 'Upload & Process'}
             </button>

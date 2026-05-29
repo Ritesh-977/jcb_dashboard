@@ -7,6 +7,7 @@ import 'react-datepicker/dist/react-datepicker.css';
 import { apiFetch } from '../api';
 import S from '../components/Skeleton';
 import { useMarket } from '../context/MarketContext';
+import { useCampaign } from '../context/CampaignContext';
 
 export default function Dashboard() {
   const today = new Date();
@@ -20,6 +21,7 @@ export default function Dashboard() {
   const [dateFrom, setDateFrom] = useState(null);
   const [dateTo, setDateTo] = useState(null);
   const { market } = useMarket();
+  const { campaign } = useCampaign();
 
   const handleDateFromChange = (date) => {
     setDateFrom(date);
@@ -44,6 +46,7 @@ useEffect(() => {
           if (dateFrom) params.append('date_from', dateFrom.toISOString().split('T')[0]);
           if (dateTo) params.append('date_to', dateTo.toISOString().split('T')[0]);
           if (market) params.append('market', market);
+          if (campaign) params.append('campaign', campaign);
           const query = params.toString() ? `?${params}` : '';
 
           const { posts, kpi, sentiment, metrics } = await apiFetch(`/dashboard/all${query}`);
@@ -72,7 +75,7 @@ useEffect(() => {
     }, 400);
 
     return () => clearTimeout(timer);
-  }, [dateFrom, dateTo, market]);
+  }, [dateFrom, dateTo, market, campaign]);
 
   if (loading) return (
     <div className="p-3 md:p-6 max-w-[1400px] mx-auto">
@@ -105,9 +108,6 @@ useEffect(() => {
       <div className="p-3 md:p-6 max-w-[1400px] mx-auto">
         <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center justify-between bg-white/50 p-3 md:p-4 rounded-t-xl gap-3 md:gap-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
-            <select className="border border-gray-300 rounded-md px-2 md:px-3 py-1.5 text-xs md:text-sm text-gray-600 bg-white outline-none w-full sm:w-auto">
-              <option>B1F1Coffee Bean</option>
-            </select>
             <div className="bg-[#f97316] text-white text-xs md:text-sm px-2 md:px-4 py-1.5 rounded-full font-medium whitespace-nowrap">
               Promo Period: 6 May – 29 July
             </div>

@@ -27,7 +27,7 @@ def _store(key, data):
     return data
 
 
-def _build_where(market, date_from, date_to, table_alias="", date_col="publish_date"):
+def _build_where(market, date_from, date_to, campaign=None, table_alias="", date_col="publish_date"):
     conditions, params = [], []
     prefix = f"{table_alias}." if table_alias else ""
     if market:
@@ -39,6 +39,9 @@ def _build_where(market, date_from, date_to, table_alias="", date_col="publish_d
     if date_to:
         conditions.append(f"{prefix}{date_col} <= %s")
         params.append(date_to)
+    if campaign:
+        conditions.append(f"{prefix}campaign_id = %s")
+        params.append(campaign)
     where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
     return where, params
 
@@ -66,6 +69,38 @@ def get_markets(_user: dict = Depends(get_current_user)):
     return result
 
 
+_campaigns_cache = {"data": None, "ts": 0}
+CAMPAIGNS_TTL = 600
+
+
+@router.get("/campaigns")
+def get_campaigns(
+    market: Optional[str] = Query(None),
+    _user: dict = Depends(get_current_user)
+):
+    """Return campaigns filtered by market if provided."""
+    now = time.time()
+    cache_key = f"campaigns_{market or 'all'}"
+    
+    if cache_key in _campaigns_cache and now - _campaigns_cache[cache_key].get("ts", 0) < CAMPAIGNS_TTL:
+        return _campaigns_cache[cache_key]["data"]
+
+    with get_snowflake_connection() as conn:
+        cur = conn.cursor()
+        if market:
+            cur.execute(
+                "SELECT id, campaign_name, market_code FROM campaigns WHERE market_code = %s ORDER BY campaign_name",
+                (market,)
+            )
+        else:
+            cur.execute("SELECT id, campaign_name, market_code FROM campaigns ORDER BY campaign_name")
+        rows = cur.fetchall()
+    
+    result = [{"id": r[0], "name": r[1], "market_code": r[2]} for r in rows]
+    _campaigns_cache[cache_key] = {"data": result, "ts": now}
+    return result
+
+
 # --- Consolidated /all endpoint (single Snowflake round-trip) ---
 
 @router.get("/all")
@@ -73,21 +108,39 @@ def get_all_dashboard(
     date_from: Optional[date] = Query(None),
     date_to: Optional[date] = Query(None),
     market: Optional[str] = Query(None),
+    campaign: Optional[str] = Query(None),
     _user: dict = Depends(get_current_user),
 ):
     """
     Single endpoint that returns posts, KPIs, sentiment, and metrics
     in ONE Snowflake connection with batched queries.
     """
-    ck = _cache_key("all", market, date_from, date_to)
+    ck = _cache_key("all", market, date_from, date_to, campaign)
     hit = _cached(ck)
     if hit:
         return hit
 
-    post_where, post_params = _build_where(market, date_from, date_to, "p")
-    agg_where, agg_params = _build_where(market, date_from, date_to)
-    sent_where, sent_params = _build_where(market, None, None)  # sentiment = no date filter
-    c_where, c_params = _build_where(market, date_from, date_to, date_col="comment_date")
+    post_where, post_params = _build_where(market, date_from, date_to, campaign, "p")
+    agg_where, agg_params = _build_where(market, date_from, date_to, campaign)
+    sent_where, sent_params = _build_where(market, None, None, campaign)  # sentiment = no date filter
+    
+    # For comments, we need special handling when campaign filter is present
+    if campaign:
+        c_conditions, c_params = [], []
+        if market:
+            c_conditions.append("c.market_code = %s")
+            c_params.append(market)
+        if date_from:
+            c_conditions.append("c.comment_date >= %s")
+            c_params.append(date_from)
+        if date_to:
+            c_conditions.append("c.comment_date <= %s")
+            c_params.append(date_to)
+        c_conditions.append("p.campaign_id = %s")
+        c_params.append(campaign)
+        c_where = f"WHERE {' AND '.join(c_conditions)}" if c_conditions else ""
+    else:
+        c_where, c_params = _build_where(market, date_from, date_to, None, date_col="comment_date")
 
     with get_snowflake_connection() as conn:
         cur = conn.cursor()
@@ -119,14 +172,27 @@ def get_all_dashboard(
         total_likes, total_eng, p_pos, p_neg, p_neu, p_total = cur.fetchone()
 
         # 3. Comment-level KPIs
-        cur.execute(f"""
-            SELECT
-                COUNT(*),
-                COUNT_IF(UPPER(sentiment) = 'POSITIVE'),
-                COUNT_IF(UPPER(sentiment) = 'NEGATIVE'),
-                COUNT_IF(UPPER(sentiment) = 'NEUTRAL')
-            FROM comments {c_where}
-        """, c_params)
+        if campaign:
+            # Need to join with posts to filter by campaign
+            cur.execute(f"""
+                SELECT
+                    COUNT(*),
+                    COUNT_IF(UPPER(c.sentiment) = 'POSITIVE'),
+                    COUNT_IF(UPPER(c.sentiment) = 'NEGATIVE'),
+                    COUNT_IF(UPPER(c.sentiment) = 'NEUTRAL')
+                FROM comments c
+                INNER JOIN posts p ON c.post_id = p.id AND c.market_code = p.market_code
+                {c_where}
+            """, c_params)
+        else:
+            cur.execute(f"""
+                SELECT
+                    COUNT(*),
+                    COUNT_IF(UPPER(sentiment) = 'POSITIVE'),
+                    COUNT_IF(UPPER(sentiment) = 'NEGATIVE'),
+                    COUNT_IF(UPPER(sentiment) = 'NEUTRAL')
+                FROM comments {c_where}
+            """, c_params)
         c_total, c_pos, c_neg, c_neu = cur.fetchone()
 
         # 4. Sentiment by platform
@@ -199,14 +265,15 @@ def get_posts(
     date_from: Optional[date] = Query(None),
     date_to: Optional[date] = Query(None),
     market: Optional[str] = Query(None),
+    campaign: Optional[str] = Query(None),
     _user: dict = Depends(get_current_user),
 ):
-    ck = _cache_key("posts", market, date_from, date_to)
+    ck = _cache_key("posts", market, date_from, date_to, campaign)
     hit = _cached(ck)
     if hit:
         return hit
 
-    where, params = _build_where(market, date_from, date_to, "p")
+    where, params = _build_where(market, date_from, date_to, campaign, "p")
     with get_snowflake_connection() as conn:
         cur = conn.cursor()
         cur.execute(f"""
@@ -237,15 +304,33 @@ def get_kpi(
     market: Optional[str] = Query(None),
     date_from: Optional[date] = Query(None),
     date_to: Optional[date] = Query(None),
+    campaign: Optional[str] = Query(None),
     _user: dict = Depends(get_current_user),
 ):
-    ck = _cache_key("kpi", market, date_from, date_to)
+    ck = _cache_key("kpi", market, date_from, date_to, campaign)
     hit = _cached(ck)
     if hit:
         return hit
 
-    where, params = _build_where(market, date_from, date_to)
-    c_where, c_params = _build_where(market, date_from, date_to, date_col="comment_date")
+    where, params = _build_where(market, date_from, date_to, campaign)
+    
+    # For comments, we need special handling when campaign filter is present
+    if campaign:
+        c_conditions, c_params = [], []
+        if market:
+            c_conditions.append("c.market_code = %s")
+            c_params.append(market)
+        if date_from:
+            c_conditions.append("c.comment_date >= %s")
+            c_params.append(date_from)
+        if date_to:
+            c_conditions.append("c.comment_date <= %s")
+            c_params.append(date_to)
+        c_conditions.append("p.campaign_id = %s")
+        c_params.append(campaign)
+        c_where = f"WHERE {' AND '.join(c_conditions)}" if c_conditions else ""
+    else:
+        c_where, c_params = _build_where(market, date_from, date_to, None, date_col="comment_date")
 
     with get_snowflake_connection() as conn:
         cur = conn.cursor()
@@ -255,13 +340,24 @@ def get_kpi(
         """, params)
         total_likes, total_engagement = cur.fetchone()
 
-        cur.execute(f"""
-            SELECT COUNT(*),
-                COUNT_IF(UPPER(sentiment) = 'POSITIVE'),
-                COUNT_IF(UPPER(sentiment) = 'NEGATIVE'),
-                COUNT_IF(UPPER(sentiment) = 'NEUTRAL')
-            FROM comments {c_where}
-        """, c_params)
+        if campaign:
+            cur.execute(f"""
+                SELECT COUNT(*),
+                    COUNT_IF(UPPER(c.sentiment) = 'POSITIVE'),
+                    COUNT_IF(UPPER(c.sentiment) = 'NEGATIVE'),
+                    COUNT_IF(UPPER(c.sentiment) = 'NEUTRAL')
+                FROM comments c
+                INNER JOIN posts p ON c.post_id = p.id AND c.market_code = p.market_code
+                {c_where}
+            """, c_params)
+        else:
+            cur.execute(f"""
+                SELECT COUNT(*),
+                    COUNT_IF(UPPER(sentiment) = 'POSITIVE'),
+                    COUNT_IF(UPPER(sentiment) = 'NEGATIVE'),
+                    COUNT_IF(UPPER(sentiment) = 'NEUTRAL')
+                FROM comments {c_where}
+            """, c_params)
         total_comments, positive, negative, neutral = cur.fetchone()
 
     total_sent = (positive or 0) + (negative or 0) + (neutral or 0)
@@ -285,14 +381,15 @@ def get_kpi(
 @router.get("/sentiment")
 def get_sentiment(
     market: Optional[str] = Query(None),
+    campaign: Optional[str] = Query(None),
     _user: dict = Depends(get_current_user),
 ):
-    ck = _cache_key("sentiment", market)
+    ck = _cache_key("sentiment", market, campaign)
     hit = _cached(ck)
     if hit:
         return hit
 
-    where, params = _build_where(market, None, None)
+    where, params = _build_where(market, None, None, campaign)
     with get_snowflake_connection() as conn:
         cur = conn.cursor()
         cur.execute(f"""
@@ -321,14 +418,15 @@ def get_metrics(
     market: Optional[str] = Query(None),
     date_from: Optional[date] = Query(None),
     date_to: Optional[date] = Query(None),
+    campaign: Optional[str] = Query(None),
     _user: dict = Depends(get_current_user),
 ):
-    ck = _cache_key("metrics", market, date_from, date_to)
+    ck = _cache_key("metrics", market, date_from, date_to, campaign)
     hit = _cached(ck)
     if hit:
         return hit
 
-    where, params = _build_where(market, date_from, date_to)
+    where, params = _build_where(market, date_from, date_to, campaign)
     with get_snowflake_connection() as conn:
         cur = conn.cursor()
         cur.execute(f"""

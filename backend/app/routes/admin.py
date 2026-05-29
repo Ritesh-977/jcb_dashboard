@@ -181,7 +181,50 @@ def delete_market(market_code: str, _: dict = Depends(require_admin)):
     # Bust the cached markets list so the next dashboard fetch is fresh
     dashboard_module._markets_cache["data"] = None
     dashboard_module._markets_cache["ts"] = 0
-    # Also clear the general data cache
+    # Also clear the general data cache and campaigns cache
+    dashboard_module._campaigns_cache.clear()
     dashboard_module._cache.clear()
 
     return {"message": f"Market '{exact_code}' and all associated data deleted successfully"}
+
+
+# ── Campaign Management ────────────────────────────────────────────────────────
+
+@router.delete("/campaigns/{campaign_id}", status_code=status.HTTP_200_OK)
+def delete_campaign(campaign_id: int, _: dict = Depends(require_admin)):
+    """Delete a campaign. Posts/comments will remain but campaign_id will be set to NULL."""
+    with get_snowflake_connection() as conn:
+        cur = conn.cursor()
+        
+        # Check if campaign exists
+        cur.execute("SELECT id, campaign_name FROM campaigns WHERE id = %s", (campaign_id,))
+        row = cur.fetchone()
+        if not row:
+            raise HTTPException(status_code=404, detail=f"Campaign with ID {campaign_id} not found")
+        
+        campaign_name = row[1]
+        
+        # Delete authors associated with posts in this campaign
+        cur.execute("""
+            DELETE FROM authors 
+            WHERE post_id IN (SELECT id FROM posts WHERE campaign_id = %s)
+        """, (campaign_id,))
+        
+        # Delete comments associated with posts in this campaign
+        cur.execute("""
+            DELETE FROM comments 
+            WHERE post_id IN (SELECT id FROM posts WHERE campaign_id = %s)
+        """, (campaign_id,))
+        
+        # Delete the posts
+        cur.execute("DELETE FROM posts WHERE campaign_id = %s", (campaign_id,))
+        
+        # Delete the campaign
+        cur.execute("DELETE FROM campaigns WHERE id = %s", (campaign_id,))
+        conn.commit()
+    
+    # Bust caches
+    dashboard_module._campaigns_cache.clear()
+    dashboard_module._cache.clear()
+    
+    return {"message": f"Campaign '{campaign_name}' deleted successfully. All associated posts and comments have been deleted."}

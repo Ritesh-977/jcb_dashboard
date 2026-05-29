@@ -25,7 +25,7 @@ import csv
 import uuid
 from io import StringIO
 
-router = APIRouter(prefix="/api/etl", tags=["ETL"])
+router = APIRouter(prefix="/etl", tags=["ETL"])
 
 # Common market code → name lookup
 MARKET_NAMES = {
@@ -40,7 +40,7 @@ MARKET_NAMES = {
 async def upload_csv(
     file: UploadFile = File(...),
     targetCountry: str = Form(...),
-    campaignName: str = Form(None),
+    campaignName: str = Form(...),
     _: dict = Depends(require_admin),
 ):
     """
@@ -61,9 +61,12 @@ async def upload_csv(
       - Missing columns → gracefully default to None/0
       - Heterogeneous headers → fuzzy-matched to canonical field names
     """
-    # ── Validate file type ──
+    # ── Validate inputs ──
     if not file.filename.endswith('.csv'):
         raise HTTPException(status_code=400, detail="Only CSV files are allowed")
+    
+    if not campaignName or not campaignName.strip():
+        raise HTTPException(status_code=400, detail="Campaign name is required")
 
     # ── Read & decode CSV ──
     content = await file.read()
@@ -109,22 +112,21 @@ async def upload_csv(
             WHEN NOT MATCHED THEN INSERT (market_code, market_name) VALUES (%s, %s)
         """, (market_code, market_code, market_name))
 
-        # 2. Ensure campaign exists (if provided)
+        # 2. Ensure campaign exists (required)
         campaign_id = None
-        if campaignName:
-            cursor.execute("""
-                MERGE INTO campaigns t
-                USING (SELECT %s AS cn, %s AS mc) s
-                ON t.campaign_name = s.cn AND t.market_code = s.mc
-                WHEN NOT MATCHED THEN INSERT (campaign_name, market_code) VALUES (%s, %s)
-            """, (campaignName, market_code, campaignName, market_code))
-            cursor.execute(
-                "SELECT id FROM campaigns WHERE campaign_name = %s AND market_code = %s",
-                (campaignName, market_code),
-            )
-            row = cursor.fetchone()
-            if row:
-                campaign_id = row[0]
+        cursor.execute("""
+            MERGE INTO campaigns t
+            USING (SELECT %s AS cn, %s AS mc) s
+            ON t.campaign_name = s.cn AND t.market_code = s.mc
+            WHEN NOT MATCHED THEN INSERT (campaign_name, market_code) VALUES (%s, %s)
+        """, (campaignName, market_code, campaignName, market_code))
+        cursor.execute(
+            "SELECT id FROM campaigns WHERE campaign_name = %s AND market_code = %s",
+            (campaignName, market_code),
+        )
+        row = cursor.fetchone()
+        if row:
+            campaign_id = row[0]
 
         # 3. Stage raw data into raw_ingestion (audit trail, all rows)
         stage_raw_ingestion(rows, field_map, market_code, batch_id, cursor)
@@ -151,6 +153,7 @@ async def upload_csv(
     # ── Bust caches so dashboard picks up new data immediately ──
     dashboard_module._markets_cache["data"] = None
     dashboard_module._markets_cache["ts"] = 0
+    dashboard_module._campaigns_cache.clear()
     dashboard_module._cache.clear()
 
     return {

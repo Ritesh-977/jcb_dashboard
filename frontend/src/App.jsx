@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { MarketProvider } from './context/MarketContext';
+import { CampaignProvider } from './context/CampaignContext';
 import Layout from './components/Layout';
 import { DashboardRoute } from './components/ProtectedRoute';
 import Dashboard from './pages/Dashboard';
@@ -16,7 +17,8 @@ function App() {
   return (
     <AuthProvider>
       <MarketProvider>
-      <BrowserRouter>
+        <CampaignProvider>
+          <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/admin-login" element={<AdminLogin />} />
@@ -46,7 +48,8 @@ function App() {
 
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
-      </BrowserRouter>
+          </BrowserRouter>
+        </CampaignProvider>
       </MarketProvider>
     </AuthProvider>
   );

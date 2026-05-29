@@ -5,6 +5,7 @@ import SentimentImpact from '../components/SentimentImpact';
 import { apiFetch } from '../api';
 import S from '../components/Skeleton';
 import { useMarket } from '../context/MarketContext';
+import { useCampaign } from '../context/CampaignContext';
 
 const SIZE_SCALE = (count) => {
   if (count >= 5) return 'text-5xl';
@@ -25,6 +26,7 @@ export default function SentimentDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { market } = useMarket();
+  const { campaign } = useCampaign();
 
   useEffect(() => {
     const load = async () => {
@@ -32,7 +34,11 @@ export default function SentimentDashboard() {
       setTotals({ comments: 0, positive: 0, neutral: 0, negative: 0 });
       setSentimentData([]);
       try {
-        const query = market ? `?market=${encodeURIComponent(market)}` : '';
+        const params = new URLSearchParams();
+        if (market) params.append('market', market);
+        if (campaign) params.append('campaign', campaign);
+        const query = params.toString() ? `?${params}` : '';
+        
         const [{ sentiment, kpi }, comments] = await Promise.all([
           apiFetch(`/dashboard/all${query}`),
           apiFetch(`/comments/${query}`),
@@ -76,7 +82,7 @@ export default function SentimentDashboard() {
       }
     };
     load();
-  }, [market]);
+  }, [market, campaign]);
 
   if (loading) return (
     <div className="p-3 md:p-6 max-w-[1400px] mx-auto mt-2 md:mt-4">
