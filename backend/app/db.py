@@ -1,4 +1,5 @@
 import os
+import snowflake.connector
 from fastapi import HTTPException
 from contextlib import contextmanager
 
@@ -9,9 +10,8 @@ def init_connection_pool():
     token_file_path = "/snowflake/session/token"
     
     if os.path.exists(token_file_path):
-        # Running inside Snowflake service - use Snowpark with OAuth token
-        from snowflake.snowpark import Session
-        
+        # Running inside Snowflake service - use oauth token
+
         with open(token_file_path, "r") as f:
             token = f.read().strip()
         # SPCS provides SNOWFLAKE_ACCOUNT environment variable automatically
@@ -34,11 +34,10 @@ def init_connection_pool():
             "database": "my_dashboard_db",
             "schema": "public"
         }
-        _session = Session.builder.configs(connection_params).create()
-        print(f"Snowpark session created successfully in SPCS with account: {account}")
+        _session = snowflake.connector.connect(**connection_params)
+        print(f"Snowflake connection created successfully in SPCS with account: {account}")
     else:
         # Local development
-        from snowflake.snowpark import Session
         from cryptography.hazmat.primitives import serialization
         from cryptography.hazmat.backends import default_backend
         
@@ -81,16 +80,22 @@ def init_connection_pool():
                 if os.getenv("SNOWFLAKE_PASSCODE"):
                     connection_params["passcode"] = os.getenv("SNOWFLAKE_PASSCODE")
         
-        _session = Session.builder.configs(connection_params).create()
-        print("Snowpark session created successfully locally")
+        _session = snowflake.connector.connect(**connection_params)
+        print("Snowflake connection created successfully locally")
 
 @contextmanager
 def get_snowflake_connection():
     global _session
     try:
-        if _session is None:
-            print("Initializing Snowflake session...")
+        if _session is None or _session.is_closed():
+            print("Initializing Snowflake connection...")
             init_connection_pool()
+        # Ping to detect stale connections and reconnect
+        _session.cursor().execute("SELECT 1")
+    except Exception:
+        print("Reconnecting to Snowflake...")
+        init_connection_pool()
+    try:
         yield _session
     except Exception as e:
         print(f"Database query failed: {e}")
