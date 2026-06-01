@@ -17,6 +17,7 @@ def init_connection_pool():
             token = f.read().strip()
         _connection_pool = snowflake.connector.connect(
             account=os.getenv("SNOWFLAKE_ACCOUNT"),
+            host=os.getenv("SNOWFLAKE_HOST"),
             authenticator="oauth",
             token=token,
             warehouse="my_basic_wh",
