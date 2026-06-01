@@ -10,7 +10,7 @@ from app.db import init_connection_pool
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    init_connection_pool()
+    # Don't initialize connection at startup - let it initialize on first use
     yield
 
 app = FastAPI(title="JCB Dashboard API", lifespan=lifespan)

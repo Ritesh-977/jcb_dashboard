@@ -13,10 +13,15 @@ def init_connection_pool():
     token_file_path = "/snowflake/session/token"
     
     if os.path.exists(token_file_path):
+        # Running inside Snowflake service - use OAuth token
         with open(token_file_path, "r") as f:
             token = f.read().strip()
+        
+        # Get account from environment or use default
+        account = os.getenv("SNOWFLAKE_ACCOUNT", "ADAGLOBAL-JCB")
+        
         _connection_pool = snowflake.connector.connect(
-            account=os.getenv("SNOWFLAKE_ACCOUNT"),
+            account=account,
             authenticator="oauth",
             token=token,
             warehouse="my_basic_wh",
@@ -74,11 +79,12 @@ def get_snowflake_connection():
     global _connection_pool
     try:
         if _connection_pool is None or _connection_pool.is_closed():
+            print("Initializing Snowflake connection...")
             init_connection_pool()
         # Ping to detect stale connections and reconnect
         _connection_pool.cursor().execute("SELECT 1")
-    except Exception:
-        print("Reconnecting to Snowflake...")
+    except Exception as e:
+        print(f"Reconnecting to Snowflake: {e}")
         init_connection_pool()
     try:
         yield _connection_pool
