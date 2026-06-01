@@ -1,35 +1,50 @@
 import os
-import snowflake.connector
-from snowflake.connector.connection import SnowflakeConnection
 from fastapi import HTTPException
 from contextlib import contextmanager
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.backends import default_backend
 
-_connection_pool = None
+_session = None
 
 def init_connection_pool():
-    global _connection_pool
+    global _session
     token_file_path = "/snowflake/session/token"
     
     if os.path.exists(token_file_path):
+        # Running inside Snowflake service - use Snowpark with OAuth token
+        from snowflake.snowpark import Session
+        
         with open(token_file_path, "r") as f:
             token = f.read().strip()
-        _connection_pool = snowflake.connector.connect(
-            account=os.getenv("SNOWFLAKE_ACCOUNT"),
-            host=os.getenv("SNOWFLAKE_HOST"),
-            authenticator="oauth",
-            token=token,
-            warehouse="my_basic_wh",
-            database="my_dashboard_db",
-            schema="public",
-            client_session_keep_alive=True
-        )
+        # SPCS provides SNOWFLAKE_ACCOUNT environment variable automatically
+        account = os.getenv("SNOWFLAKE_ACCOUNT")
+        if not account:
+            # Fallback: try to read from mounted config
+            try:
+                with open("/snowflake/session/account", "r") as f:
+                    account = f.read().strip()
+            except:
+                # Last resort: use the account from service deployment
+                account = "ADAGLOBAL-JCB"
+        
+        connection_params = {
+            "account": account,
+            "host": os.getenv("SNOWFLAKE_HOST"),
+            "authenticator": "oauth",
+            "token": token,
+            "warehouse": "my_basic_wh",
+            "database": "my_dashboard_db",
+            "schema": "public"
+        }
+        _session = Session.builder.configs(connection_params).create()
+        print(f"Snowpark session created successfully in SPCS with account: {account}")
     else:
+        # Local development
+        from snowflake.snowpark import Session
+        from cryptography.hazmat.primitives import serialization
+        from cryptography.hazmat.backends import default_backend
+        
         private_key_path = os.getenv("SNOWFLAKE_PRIVATE_KEY_PATH")
         
         if private_key_path and os.path.exists(private_key_path):
-            # Use key-pair authentication
             with open(private_key_path, "rb") as key_file:
                 private_key = serialization.load_pem_private_key(
                     key_file.read(),
@@ -43,46 +58,40 @@ def init_connection_pool():
                 encryption_algorithm=serialization.NoEncryption()
             )
             
-            _connection_pool = snowflake.connector.connect(
-                account=os.getenv("SNOWFLAKE_ACCOUNT"),
-                user=os.getenv("SNOWFLAKE_USER"),
-                private_key=pkb,
-                warehouse="my_basic_wh",
-                database="my_dashboard_db",
-                schema="public",
-                client_session_keep_alive=True
-            )
+            connection_params = {
+                "account": os.getenv("SNOWFLAKE_ACCOUNT"),
+                "user": os.getenv("SNOWFLAKE_USER"),
+                "private_key": pkb,
+                "warehouse": "my_basic_wh",
+                "database": "my_dashboard_db",
+                "schema": "public"
+            }
         else:
-            # Fallback to password/browser auth
             authenticator = os.getenv("SNOWFLAKE_AUTHENTICATOR", "snowflake")
-            conn_params = {
+            connection_params = {
                 "account": os.getenv("SNOWFLAKE_ACCOUNT"),
                 "user": os.getenv("SNOWFLAKE_USER"),
                 "warehouse": "my_basic_wh",
                 "database": "my_dashboard_db",
                 "schema": "public",
-                "client_session_keep_alive": True,
                 "authenticator": authenticator
             }
             if authenticator == "snowflake":
-                conn_params["password"] = os.getenv("SNOWFLAKE_PASSWORD")
+                connection_params["password"] = os.getenv("SNOWFLAKE_PASSWORD")
                 if os.getenv("SNOWFLAKE_PASSCODE"):
-                    conn_params["passcode"] = os.getenv("SNOWFLAKE_PASSCODE")
-            _connection_pool = snowflake.connector.connect(**conn_params)
+                    connection_params["passcode"] = os.getenv("SNOWFLAKE_PASSCODE")
+        
+        _session = Session.builder.configs(connection_params).create()
+        print("Snowpark session created successfully locally")
 
 @contextmanager
 def get_snowflake_connection():
-    global _connection_pool
+    global _session
     try:
-        if _connection_pool is None or _connection_pool.is_closed():
+        if _session is None:
+            print("Initializing Snowflake session...")
             init_connection_pool()
-        # Ping to detect stale connections and reconnect
-        _connection_pool.cursor().execute("SELECT 1")
-    except Exception:
-        print("Reconnecting to Snowflake...")
-        init_connection_pool()
-    try:
-        yield _connection_pool
+        yield _session
     except Exception as e:
         print(f"Database query failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
