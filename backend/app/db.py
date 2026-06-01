@@ -65,6 +65,8 @@ def init_connection_pool():
             }
             if authenticator == "snowflake":
                 conn_params["password"] = os.getenv("SNOWFLAKE_PASSWORD")
+                if os.getenv("SNOWFLAKE_PASSCODE"):
+                    conn_params["passcode"] = os.getenv("SNOWFLAKE_PASSCODE")
             _connection_pool = snowflake.connector.connect(**conn_params)
 
 @contextmanager
