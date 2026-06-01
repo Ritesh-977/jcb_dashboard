@@ -26,15 +26,14 @@ class ChangePasswordRequest(BaseModel):
 
 
 def _fetch_user(email: str):
-    with get_snowflake_connection() as session:
-        df = session.sql(
-            "SELECT ID, EMAIL, ROLE, PASSWORD_HASH, PERMISSIONS, IS_ACTIVE FROM USERS WHERE EMAIL = ?",
-            params=[email]
-        ).collect()
-        if not df:
-            return None
-        row = df[0]
-        return (row["ID"], row["EMAIL"], row["ROLE"], row["PASSWORD_HASH"], row["PERMISSIONS"], row["IS_ACTIVE"])
+    with get_snowflake_connection() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT ID, EMAIL, ROLE, PASSWORD_HASH, PERMISSIONS, IS_ACTIVE FROM USERS WHERE EMAIL = %s",
+            (email,)
+        )
+        row = cur.fetchone()
+    return row
 
 
 def _build_token(row) -> dict:
@@ -69,16 +68,18 @@ def admin_login(body: LoginRequest):
 
 @router.put("/change-password")
 def change_password(body: ChangePasswordRequest, current_user: dict = Depends(get_current_user)):
-    with get_snowflake_connection() as session:
-        df = session.sql("SELECT PASSWORD_HASH FROM USERS WHERE ID = ?", params=[current_user["sub"]]).collect()
-        if not df:
+    with get_snowflake_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT PASSWORD_HASH FROM USERS WHERE ID = %s", (current_user["sub"],))
+        row = cur.fetchone()
+        if not row:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
-        row = df[0]
-        if not pwd_context.verify(body.old_password, row["PASSWORD_HASH"]):
+        if not pwd_context.verify(body.old_password, row[0]):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Old password is incorrect")
         
         new_hash = pwd_context.hash(body.new_password)
-        session.sql("UPDATE USERS SET PASSWORD_HASH = ? WHERE ID = ?", params=[new_hash, current_user["sub"]]).collect()
+        cur.execute("UPDATE USERS SET PASSWORD_HASH = %s WHERE ID = %s", (new_hash, current_user["sub"]))
+        conn.commit()
     return {"message": "Password updated"}
 
 
