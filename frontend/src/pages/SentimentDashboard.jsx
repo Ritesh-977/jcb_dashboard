@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import SentimentBreakdowns from '../components/SentimentBreakdowns';
 import PlatformSentiment from '../components/PlatformSentiment';
 import SentimentImpact from '../components/SentimentImpact';
@@ -25,8 +27,23 @@ export default function SentimentDashboard() {
   const [totals, setTotals] = useState({ comments: 0, positive: 0, neutral: 0, negative: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [dateFrom, setDateFrom] = useState(null);
+  const [dateTo, setDateTo] = useState(null);
   const { market } = useMarket();
   const { campaign } = useCampaign();
+
+  const handleDateFromChange = (date) => {
+    setDateFrom(date);
+    if (dateTo && date > dateTo) {
+      setDateTo(null);
+    }
+  };
+
+  const handleDateToChange = (date) => {
+    if (!dateFrom || date >= dateFrom) {
+      setDateTo(date);
+    }
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -35,6 +52,8 @@ export default function SentimentDashboard() {
       setSentimentData([]);
       try {
         const params = new URLSearchParams();
+        if (dateFrom) params.append('date_from', dateFrom.toISOString().split('T')[0]);
+        if (dateTo) params.append('date_to', dateTo.toISOString().split('T')[0]);
         if (market) params.append('market', market);
         if (campaign) params.append('campaign', campaign);
         const query = params.toString() ? `?${params}` : '';
@@ -82,10 +101,10 @@ export default function SentimentDashboard() {
       }
     };
     load();
-  }, [market, campaign]);
+  }, [dateFrom, dateTo, market, campaign]);
 
   if (loading) return (
-    <div className="p-3 md:p-6 max-w-[1400px] mx-auto mt-2 md:mt-4">
+    <div className="p-3 md:p-6 max-w-[1400px] mx-auto">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
         <S className="h-64" />
         <S className="h-64" />
@@ -100,7 +119,54 @@ export default function SentimentDashboard() {
 
   return (
     <div>
-      <div className="p-3 md:p-6 max-w-[1400px] mx-auto mt-2 md:mt-4">
+      <div className="p-3 md:p-6 max-w-[1400px] mx-auto">
+        
+        {/* Date Filter Top Bar */}
+        <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center justify-between bg-white/50 p-3 md:p-4 rounded-t-xl gap-3 md:gap-4 mb-4">
+          <div className="bg-white border border-gray-300 rounded-md px-2 md:px-4 py-1.5 text-xs md:text-sm text-gray-600 flex gap-2 md:gap-4 items-center relative">
+            <div className="relative">
+              <DatePicker
+                selected={dateFrom}
+                onChange={handleDateFromChange}
+                dateFormat="dd/MM/yyyy"
+                placeholderText="From date"
+                className="outline-none bg-transparent text-xs md:text-sm text-gray-600 w-24 pr-6"
+                wrapperClassName="w-auto"
+                maxDate={dateTo || undefined}
+                showMonthDropdown
+                showYearDropdown
+                dropdownMode="select"
+                yearDropdownItemNumber={10}
+                scrollableYearDropdown
+                popperPlacement="bottom-start"
+              />
+              <span className="absolute right-1 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs pointer-events-none">📅</span>
+            </div>
+            <span className="text-gray-400">–</span>
+            <div className="relative">
+              <DatePicker
+                selected={dateTo}
+                onChange={handleDateToChange}
+                dateFormat="dd/MM/yyyy"
+                placeholderText="To date"
+                className="outline-none bg-transparent text-xs md:text-sm text-gray-600 w-24 pr-6"
+                wrapperClassName="w-auto"
+                minDate={dateFrom || undefined}
+                showMonthDropdown
+                showYearDropdown
+                dropdownMode="select"
+                yearDropdownItemNumber={10}
+                scrollableYearDropdown
+                popperPlacement="bottom-start"
+              />
+              <span className="absolute right-1 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs pointer-events-none">📅</span>
+            </div>
+            {(dateFrom || dateTo) && (
+              <button onClick={() => { setDateFrom(null); setDateTo(null); }} className="text-gray-400 hover:text-gray-600 text-xs ml-1">✕</button>
+            )}
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
           <SentimentBreakdowns
             totalComments={totals.comments}

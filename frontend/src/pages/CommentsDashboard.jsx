@@ -11,7 +11,7 @@ export default function CommentsDashboard() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [platform, setPlatform] = useState('');
+  const [platform, setPlatform] = useState('Facebook');
   const [sentiment, setSentiment] = useState('');
   const [selectedPost, setSelectedPost] = useState('');
   const { market } = useMarket();
@@ -82,7 +82,6 @@ export default function CommentsDashboard() {
           onChange={e => setPlatform(e.target.value)}
           className="border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 bg-white"
         >
-          <option value="">All Platforms</option>
           <option value="Facebook">Facebook</option>
           <option value="Instagram">Instagram</option>
         </select>
@@ -113,21 +112,20 @@ export default function CommentsDashboard() {
       </div>
 
       {loading && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="space-y-3">
-            {[...Array(5)].map((_, i) => <S key={i} className="h-32" />)}
-          </div>
-          <div className="space-y-3">
-            {[...Array(5)].map((_, i) => <S key={i} className="h-32" />)}
-          </div>
+        <div className="w-full space-y-3">
+          {[...Array(5)].map((_, i) => <S key={i} className="h-32 w-full" />)}
         </div>
       )}
       {error && <p className="text-red-500 text-sm">Failed to load: {error}</p>}
 
       {!loading && !error && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
-          <FacebookComments comments={fbComments} postLink={fbPostLink} />
-          <InstagramComments comments={igComments} postLink={igPostLink} />
+        <div className="w-full">
+          {platform === 'Facebook' && (
+            <FacebookComments comments={fbComments} postLink={fbPostLink} />
+          )}
+          {platform === 'Instagram' && (
+            <InstagramComments comments={igComments} postLink={igPostLink} />
+          )}
         </div>
       )}
     </div>
