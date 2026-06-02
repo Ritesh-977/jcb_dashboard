@@ -2,7 +2,29 @@ import React from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const SentimentTrendChart = ({ data, keywords = [] }) => {
-  const colors = ['#42d4f4', '#10b981', '#fbbf24', '#ef4444'];
+  const positiveColors = ['#10b981', '#34d399', '#059669', '#6ee7b7']; // greens
+  const negativeColors = ['#ef4444', '#f87171', '#dc2626', '#fca5a5']; // reds
+  
+  let posIdx = 0;
+  let negIdx = 0;
+  
+  const styledKeywords = keywords.map(kwObj => {
+    // Check if kwObj is a string (fallback) or object
+    const type = kwObj.type;
+    const keyword = kwObj.keyword || kwObj;
+    
+    let color = '#64748b';
+    let dash = 'none';
+    if (type === 'Positive') {
+      color = positiveColors[posIdx % positiveColors.length];
+      posIdx++;
+    } else if (type === 'Negative') {
+      color = negativeColors[negIdx % negativeColors.length];
+      dash = '5 5';
+      negIdx++;
+    }
+    return { keyword, color, dash };
+  });
   
   return (
   <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-300 h-full min-h-[500px] flex flex-col">
@@ -32,8 +54,7 @@ const SentimentTrendChart = ({ data, keywords = [] }) => {
             />
 
             <YAxis
-              domain={[0, 45]}
-              ticks={[0, 5, 10, 15, 20, 25, 30, 35, 40, 45]}
+              allowDecimals={false}
               axisLine={false}
               tickLine={false}
               tick={{ fontSize: 10, fill: '#64748b' }}
@@ -44,14 +65,15 @@ const SentimentTrendChart = ({ data, keywords = [] }) => {
               contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
             />
 
-            {keywords.map((kw, i) => (
+            {styledKeywords.map((kw) => (
               <Line
-                key={kw}
+                key={kw.keyword}
                 type="monotone"
-                dataKey={kw}
-                name={kw}
-                stroke={colors[i % colors.length]}
+                dataKey={kw.keyword}
+                name={kw.keyword}
+                stroke={kw.color}
                 strokeWidth={3}
+                strokeDasharray={kw.dash}
                 dot={false}
                 activeDot={{ r: 6 }}
               />
@@ -62,10 +84,16 @@ const SentimentTrendChart = ({ data, keywords = [] }) => {
 
       {/* Right-side legend */}
       <div className="flex lg:flex-col justify-center gap-6 pt-4 lg:pt-0 lg:pl-6 lg:min-w-[120px]">
-        {keywords.map((kw, i) => (
-          <div key={kw} className="flex items-center gap-2">
-            <div className="w-6 h-[3px] rounded-full" style={{ backgroundColor: colors[i % colors.length] }} />
-            <span className="text-xs font-bold" style={{ color: colors[i % colors.length] }}>{kw}</span>
+        {styledKeywords.map((kw) => (
+          <div key={kw.keyword} className="flex items-center gap-2">
+            <div 
+              className="w-6" 
+              style={{ 
+                borderTop: `3px ${kw.dash === 'none' ? 'solid' : 'dashed'} ${kw.color}`,
+                marginTop: '2px'
+              }} 
+            />
+            <span className="text-xs font-bold" style={{ color: kw.color }}>{kw.keyword}</span>
           </div>
         ))}
       </div>

@@ -260,7 +260,10 @@ export default function TrendDashboard() {
           No data available for the selected date range.
         </div>
       ) : (
-        <SentimentTrendChart data={trendData} keywords={selectedKeywords} />
+        <SentimentTrendChart 
+          data={trendData} 
+          keywords={allKeywords.filter(k => selectedKeywords.includes(k.keyword))} 
+        />
       )}
     </div>
   );
