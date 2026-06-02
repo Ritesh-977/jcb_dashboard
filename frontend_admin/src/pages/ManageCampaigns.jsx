@@ -11,6 +11,10 @@ export default function ManageCampaigns() {
   const [error, setError] = useState(null);
   const pendingDeletions = useRef(new Map());
 
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newCampaignMarket, setNewCampaignMarket] = useState('');
+  const [newCampaignName, setNewCampaignName] = useState('');
+  const [isAdding, setIsAdding] = useState(false);
   // Cleanup on unmount - execute all pending deletions instantly
   useEffect(() => {
     return () => {
@@ -20,7 +24,7 @@ export default function ManageCampaigns() {
         fetch(`${API_BASE}/admin/campaigns/${id}`, {
           method: 'DELETE',
           headers: token ? { Authorization: `Bearer ${token}` } : {},
-        }).catch(() => {});
+        }).catch(() => { });
       });
       pendingDeletions.current.clear();
     };
@@ -56,13 +60,49 @@ export default function ManageCampaigns() {
     fetchData();
   }, []);
 
+  const handleAddCampaign = async (e) => {
+    e.preventDefault();
+    if (!newCampaignMarket || !newCampaignName.trim()) return;
+
+    setIsAdding(true);
+    try {
+      const token = localStorage.getItem('access_token');
+      const res = await fetch(`${API_BASE}/admin/campaigns`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          campaign_name: newCampaignName.trim(),
+          market_code: newCampaignMarket
+        })
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.detail || 'Failed to create campaign');
+      }
+
+      toast.success(`Campaign "${newCampaignName}" created successfully!`);
+      setIsAddModalOpen(false);
+      setNewCampaignName('');
+      setNewCampaignMarket('');
+      fetchData(); // Refresh the list
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setIsAdding(false);
+    }
+  };
+
   const handleDelete = async (campaignId, campaignName) => {
     if (!confirm(`Are you sure you want to delete campaign "${campaignName}"?\n\nThis will permanently delete all posts, comments, and author data associated with this campaign.`)) {
       return;
     }
 
     const campaignToDelete = campaigns.find(c => c.id === campaignId);
-    
+
     // Optimistic local update
     setCampaigns(prev => prev.filter(c => c.id !== campaignId));
 
@@ -165,13 +205,23 @@ export default function ManageCampaigns() {
         }}
       />
       <div className="card">
-        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
-          <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text)' }}>
-            Campaign Management
+        <div style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text)' }}>
+              Campaign Management
+            </div>
+            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
+              View and manage all campaigns across markets. <br />
+              Deleting a campaign will permanently delete all associated posts, comments, and data.
+            </div>
           </div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>
-            View and manage all campaigns across markets. Deleting a campaign will permanently delete all associated posts, comments, and data.
-          </div>
+          <button
+            className="btn btn-primary"
+            onClick={() => setIsAddModalOpen(true)}
+            style={{ fontSize: '0.85rem', padding: '0.5rem 1rem' }}
+          >
+            + Add Campaign
+          </button>
         </div>
 
         <div style={{ padding: '1.5rem' }}>
@@ -241,6 +291,87 @@ export default function ManageCampaigns() {
           )}
         </div>
       </div>
+
+      {/* Add Campaign Modal */}
+      {isAddModalOpen && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1000,
+          display: 'flex', justifyContent: 'center', alignItems: 'center'
+        }}>
+          <div className="card" style={{ width: '100%', maxWidth: '400px', padding: '1.5rem', margin: '1rem' }}>
+            <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: '1rem' }}>Add New Campaign</div>
+            <form onSubmit={handleAddCampaign} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div className="form-field" style={{ marginBottom: 0 }}>
+                <label className="form-label">Market <span style={{ color: '#ef4444' }}>*</span></label>
+                <select
+                  className="form-input form-select"
+                  value={newCampaignMarket}
+                  onChange={e => setNewCampaignMarket(e.target.value)}
+                  required
+                >
+                  <option value="">— Select a market —</option>
+                  {(() => {
+                    const PREDEFINED_MARKETS = [
+                      { code: 'PH', name: 'Philippines' },
+                      { code: 'US', name: 'United States' },
+                      { code: 'JP', name: 'Japan' },
+                      { code: 'TH', name: 'Thailand' },
+                      { code: 'SG', name: 'Singapore' },
+                      { code: 'MY', name: 'Malaysia' },
+                      { code: 'ID', name: 'Indonesia' },
+                      { code: 'VN', name: 'Vietnam' },
+                      { code: 'TW', name: 'Taiwan' },
+                      { code: 'HK', name: 'Hong Kong' },
+                      { code: 'KR', name: 'South Korea' },
+                      { code: 'AU', name: 'Australia' },
+                    ];
+
+                    const allMarketsMap = new Map();
+                    PREDEFINED_MARKETS.forEach(m => allMarketsMap.set(m.code, m.name));
+                    markets.forEach(m => allMarketsMap.set(m.code, m.name));
+
+                    const allMarkets = Array.from(allMarketsMap.entries()).map(([code, name]) => ({ code, name }));
+                    allMarkets.sort((a, b) => a.name.localeCompare(b.name));
+
+                    return allMarkets.map((m) => (
+                      <option key={m.code} value={m.code}>{m.name} ({m.code})</option>
+                    ));
+                  })()}
+                </select>
+              </div>
+              <div className="form-field" style={{ marginBottom: 0 }}>
+                <label className="form-label">Campaign Name <span style={{ color: '#ef4444' }}>*</span></label>
+                <input
+                  type="text"
+                  className="form-input"
+                  value={newCampaignName}
+                  onChange={e => setNewCampaignName(e.target.value)}
+                  placeholder="e.g. Q3 Launch"
+                  required
+                />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+                <button
+                  type="button"
+                  className="btn"
+                  style={{ background: 'var(--surface-hover)', border: '1px solid var(--border)' }}
+                  onClick={() => setIsAddModalOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={isAdding || !newCampaignMarket || !newCampaignName.trim()}
+                >
+                  {isAdding ? 'Adding...' : 'Add Campaign'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }

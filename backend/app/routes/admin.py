@@ -190,6 +190,49 @@ def delete_market(market_code: str, _: dict = Depends(require_admin)):
 
 # ── Campaign Management ────────────────────────────────────────────────────────
 
+MARKET_NAMES = {
+    "PH": "Philippines", "US": "United States", "JP": "Japan",
+    "TH": "Thailand", "SG": "Singapore", "MY": "Malaysia",
+    "ID": "Indonesia", "VN": "Vietnam", "TW": "Taiwan",
+    "HK": "Hong Kong", "KR": "South Korea", "AU": "Australia",
+}
+
+class CreateCampaignRequest(BaseModel):
+    campaign_name: str
+    market_code: str
+
+
+@router.post("/campaigns", status_code=status.HTTP_201_CREATED)
+def create_campaign(body: CreateCampaignRequest, _: dict = Depends(require_admin)):
+    """Create a new campaign."""
+    with get_snowflake_connection() as conn:
+        cur = conn.cursor()
+        
+        # Ensure market exists
+        market_name = MARKET_NAMES.get(body.market_code, body.market_code)
+        cur.execute("""
+            MERGE INTO markets t USING (SELECT %s AS mc) s ON t.market_code = s.mc
+            WHEN NOT MATCHED THEN INSERT (market_code, market_name) VALUES (%s, %s)
+        """, (body.market_code, body.market_code, market_name))
+
+        # Check if campaign already exists for this market
+        cur.execute("SELECT id FROM campaigns WHERE campaign_name = %s AND market_code = %s", 
+                   (body.campaign_name, body.market_code))
+        if cur.fetchone():
+            raise HTTPException(status_code=409, detail="Campaign already exists for this market")
+            
+        cur.execute(
+            "INSERT INTO campaigns (campaign_name, market_code) VALUES (%s, %s)",
+            (body.campaign_name, body.market_code)
+        )
+        conn.commit()
+        
+    dashboard_module._campaigns_cache.clear()
+    dashboard_module._cache.clear()
+    
+    return {"message": f"Campaign '{body.campaign_name}' created successfully"}
+
+
 @router.delete("/campaigns/{campaign_id}", status_code=status.HTTP_200_OK)
 def delete_campaign(campaign_id: int, _: dict = Depends(require_admin)):
     """Delete a campaign. Posts/comments will remain but campaign_id will be set to NULL."""

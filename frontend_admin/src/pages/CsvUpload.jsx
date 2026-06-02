@@ -87,6 +87,7 @@ export default function CsvUpload() {
   const { markets, refreshMarkets, marketsFetched } = useMarkets();
   const [marketCode, setMarketCode] = useState('');
   const [campaignName, setCampaignName] = useState('');
+  const [campaigns, setCampaigns] = useState([]);
   const [file, setFile] = useState(null);
   const [csvHeaders, setCsvHeaders] = useState([]);
   const [detectedCategories, setDetectedCategories] = useState({});
@@ -97,10 +98,30 @@ export default function CsvUpload() {
   const [uploadHistory, setUploadHistory] = useState([]);
   const fileInputRef = useRef(null);
 
-  // ── Fetch markets on mount ──
+  // ── Fetch markets and campaigns on mount ──
   useEffect(() => {
     if (!marketsFetched) refreshMarkets();
+    
+    const fetchCampaigns = async () => {
+      try {
+        const token = localStorage.getItem('access_token');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const res = await fetch(`${API_BASE}/dashboard/campaigns`, { headers });
+        if (res.ok) {
+          const data = await res.json();
+          setCampaigns(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch campaigns", err);
+      }
+    };
+    fetchCampaigns();
   }, [marketsFetched, refreshMarkets]);
+
+  // Reset campaign name when market changes
+  useEffect(() => {
+    setCampaignName('');
+  }, [marketCode]);
 
   // ── Parse headers when file changes ──
   useEffect(() => {
@@ -293,15 +314,24 @@ export default function CsvUpload() {
               <label className="form-label">
                 Campaign Name <span style={{ color: '#ef4444' }}>*</span>
               </label>
-              <input
+              <select
                 id="csv-campaign-input"
-                className="form-input"
-                type="text"
+                className="form-input form-select"
                 value={campaignName}
                 onChange={(e) => setCampaignName(e.target.value)}
-                placeholder="e.g. B1F1 Coffee Bean Q2 2026"
+                disabled={!marketCode}
                 required
-              />
+              >
+                <option value="">
+                  {!marketCode ? "— Select a market first —" : "— Select a campaign —"}
+                </option>
+                {campaigns
+                  .filter(c => c.market_code === marketCode)
+                  .map(c => (
+                    <option key={c.id} value={c.name}>{c.name}</option>
+                  ))
+                }
+              </select>
             </div>
 
             {/* Drag & Drop Zone */}
