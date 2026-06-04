@@ -23,6 +23,9 @@ CREATE TABLE IF NOT EXISTS campaigns (
     id             INT AUTOINCREMENT PRIMARY KEY,
     campaign_name  VARCHAR(255)  NOT NULL,
     market_code    VARCHAR(10)   NOT NULL REFERENCES markets(market_code),
+    title          VARCHAR(500),
+    description    TEXT,
+    image_url      VARCHAR(1000),
     start_date     DATE,
     end_date       DATE,
     created_at     TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()

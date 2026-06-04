@@ -89,14 +89,16 @@ def get_campaigns(
         cur = conn.cursor()
         if market:
             cur.execute(
-                "SELECT id, campaign_name, market_code FROM campaigns WHERE market_code = %s ORDER BY campaign_name",
+                "SELECT id, campaign_name, market_code, title, description, image_url FROM campaigns WHERE market_code = %s ORDER BY campaign_name",
                 (market,)
             )
         else:
-            cur.execute("SELECT id, campaign_name, market_code FROM campaigns ORDER BY campaign_name")
-        rows = cur.fetchall()
-    
-    result = [{"id": r[0], "name": r[1], "market_code": r[2]} for r in rows]
+            cur.execute("SELECT id, campaign_name, market_code, title, description, image_url FROM campaigns ORDER BY campaign_name")
+        
+        result = [
+            {"id": row[0], "name": row[1], "market_code": row[2], "title": row[3], "description": row[4], "image_url": row[5]} 
+            for row in cur.fetchall()
+        ]
     _campaigns_cache[cache_key] = {"data": result, "ts": now}
     return result
 

@@ -20,8 +20,9 @@ export default function Dashboard() {
   const [error, setError] = useState(null);
   const [dateFrom, setDateFrom] = useState(null);
   const [dateTo, setDateTo] = useState(null);
+  const [promoPeriod, setPromoPeriod] = useState('Promo Period: 6 May – 29 July');
   const { market } = useMarket();
-  const { campaign } = useCampaign();
+  const { campaign, campaigns } = useCampaign();
 
   const handleDateFromChange = (date) => {
     setDateFrom(date);
@@ -61,6 +62,25 @@ useEffect(() => {
           });
           setChartData(Object.values(grouped));
           setTotalShares(posts.reduce((sum, p) => sum + (p.Shares || 0), 0));
+
+          if (posts.length > 0) {
+            const dateObjects = posts.map(p => new Date(p.Date)).filter(d => !isNaN(d));
+            if (dateObjects.length > 0) {
+              const minDate = new Date(Math.min(...dateObjects));
+              const maxDate = new Date(Math.max(...dateObjects));
+              const options = { day: 'numeric', month: 'long' };
+              const formatMin = minDate.toLocaleDateString('en-GB', options);
+              const formatMax = maxDate.toLocaleDateString('en-GB', options);
+              setPromoPeriod(`Promo Period: ${formatMin} – ${formatMax}`);
+            }
+          } else if (dateFrom || dateTo) {
+             const options = { day: 'numeric', month: 'long' };
+             const formatMin = dateFrom ? dateFrom.toLocaleDateString('en-GB', options) : '...';
+             const formatMax = dateTo ? dateTo.toLocaleDateString('en-GB', options) : '...';
+             setPromoPeriod(`Promo Period: ${formatMin} – ${formatMax}`);
+          } else {
+             setPromoPeriod('Promo Period: N/A');
+          }
 
           setTotalInteractions(metrics.total_engagement);
           setKpiData(kpi);
@@ -109,7 +129,7 @@ useEffect(() => {
         <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center justify-between bg-white/50 p-3 md:p-4 rounded-t-xl gap-3 md:gap-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
             <div className="bg-[#f97316] text-white text-xs md:text-sm px-2 md:px-4 py-1.5 rounded-full font-medium whitespace-nowrap">
-              Promo Period: 6 May – 29 July
+              {promoPeriod}
             </div>
             <div className="bg-white border border-gray-300 rounded-md px-2 md:px-4 py-1.5 text-xs md:text-sm text-gray-600 flex gap-2 md:gap-4 w-full sm:w-auto items-center relative">
               <div className="relative">
@@ -163,11 +183,19 @@ useEffect(() => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 mt-4">
-          <PromoCard
-            title={`"Buy 1 Take 1" Campaign on Tuesdays with Philippines' Coffee Bean & Tea Leaf.`}
-            criteria="Criteria: Order 1 regular drink, get another 1 for free with the JCB Credit Card at The Coffee Bean & Tea Leaf."
-          />
-          <div className="lg:col-span-8 flex flex-col gap-4">
+          {campaign ? (
+            (() => {
+              const selectedCampaignObj = campaigns.find(c => String(c.id) === String(campaign));
+              return (
+                <PromoCard
+                  title={selectedCampaignObj?.title || selectedCampaignObj?.name || 'Selected Campaign'}
+                  description={selectedCampaignObj?.description || 'No description available for this campaign.'}
+                  imageUrl={selectedCampaignObj?.image_url}
+                />
+              );
+            })()
+          ) : null}
+          <div className={`${campaign ? 'lg:col-span-8' : 'lg:col-span-12'} flex flex-col gap-4`}>
             <ChartSection chartData={chartData} />
             {chartData.length === 0 && (dateFrom || dateTo) ? (
               <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-100 text-center text-gray-400 text-sm">

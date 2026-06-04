@@ -1,5 +1,8 @@
 import json
-from fastapi import APIRouter, HTTPException, status, Depends
+import os
+import shutil
+import uuid
+from fastapi import APIRouter, HTTPException, status, Depends, Form, UploadFile, File
 from pydantic import BaseModel, EmailStr
 from passlib.context import CryptContext
 from typing import Optional
@@ -197,40 +200,109 @@ MARKET_NAMES = {
     "HK": "Hong Kong", "KR": "South Korea", "AU": "Australia",
 }
 
-class CreateCampaignRequest(BaseModel):
-    campaign_name: str
-    market_code: str
-
 
 @router.post("/campaigns", status_code=status.HTTP_201_CREATED)
-def create_campaign(body: CreateCampaignRequest, _: dict = Depends(require_admin)):
+def create_campaign(
+    campaign_name: str = Form(...),
+    market_code: str = Form(...),
+    title: str = Form(None),
+    description: str = Form(None),
+    image: UploadFile = File(None),
+    _: dict = Depends(require_admin)
+):
     """Create a new campaign."""
+    image_url = None
+    if image and image.filename:
+        os.makedirs("uploads", exist_ok=True)
+        ext = os.path.splitext(image.filename)[1]
+        unique_filename = f"{uuid.uuid4()}{ext}"
+        filepath = os.path.join("uploads", unique_filename)
+        with open(filepath, "wb") as buffer:
+            shutil.copyfileobj(image.file, buffer)
+        image_url = f"/uploads/{unique_filename}"
+
     with get_snowflake_connection() as conn:
         cur = conn.cursor()
         
         # Ensure market exists
-        market_name = MARKET_NAMES.get(body.market_code, body.market_code)
+        market_name = MARKET_NAMES.get(market_code, market_code)
         cur.execute("""
             MERGE INTO markets t USING (SELECT %s AS mc) s ON t.market_code = s.mc
             WHEN NOT MATCHED THEN INSERT (market_code, market_name) VALUES (%s, %s)
-        """, (body.market_code, body.market_code, market_name))
+        """, (market_code, market_code, market_name))
 
         # Check if campaign already exists for this market
         cur.execute("SELECT id FROM campaigns WHERE campaign_name = %s AND market_code = %s", 
-                   (body.campaign_name, body.market_code))
+                   (campaign_name, market_code))
         if cur.fetchone():
             raise HTTPException(status_code=409, detail="Campaign already exists for this market")
             
         cur.execute(
-            "INSERT INTO campaigns (campaign_name, market_code) VALUES (%s, %s)",
-            (body.campaign_name, body.market_code)
+            "INSERT INTO campaigns (campaign_name, market_code, title, description, image_url) VALUES (%s, %s, %s, %s, %s)",
+            (campaign_name, market_code, title, description, image_url)
         )
         conn.commit()
         
     dashboard_module._campaigns_cache.clear()
     dashboard_module._cache.clear()
     
-    return {"message": f"Campaign '{body.campaign_name}' created successfully"}
+    return {"message": f"Campaign '{campaign_name}' created successfully"}
+
+
+@router.put("/campaigns/{campaign_id}", status_code=status.HTTP_200_OK)
+def update_campaign(
+    campaign_id: int,
+    campaign_name: str = Form(...),
+    title: str = Form(None),
+    description: str = Form(None),
+    image: UploadFile = File(None),
+    _: dict = Depends(require_admin)
+):
+    """Update an existing campaign."""
+    image_url = None
+    if image and image.filename:
+        os.makedirs("uploads", exist_ok=True)
+        ext = os.path.splitext(image.filename)[1]
+        unique_filename = f"{uuid.uuid4()}{ext}"
+        filepath = os.path.join("uploads", unique_filename)
+        with open(filepath, "wb") as buffer:
+            shutil.copyfileobj(image.file, buffer)
+        image_url = f"/uploads/{unique_filename}"
+
+    with get_snowflake_connection() as conn:
+        cur = conn.cursor()
+        
+        # Check if campaign exists
+        cur.execute("SELECT id FROM campaigns WHERE id = %s", (campaign_id,))
+        if not cur.fetchone():
+            raise HTTPException(status_code=404, detail=f"Campaign with ID {campaign_id} not found")
+        
+        # Check if new name conflicts with another campaign in the same market
+        # We need the market_code for this campaign first
+        cur.execute("SELECT market_code FROM campaigns WHERE id = %s", (campaign_id,))
+        market_code = cur.fetchone()[0]
+        
+        cur.execute("SELECT id FROM campaigns WHERE campaign_name = %s AND market_code = %s AND id != %s", 
+                   (campaign_name, market_code, campaign_id))
+        if cur.fetchone():
+            raise HTTPException(status_code=409, detail="Another campaign with this name already exists for this market")
+        
+        if image_url:
+            cur.execute(
+                "UPDATE campaigns SET campaign_name = %s, title = %s, description = %s, image_url = %s WHERE id = %s",
+                (campaign_name, title, description, image_url, campaign_id)
+            )
+        else:
+            cur.execute(
+                "UPDATE campaigns SET campaign_name = %s, title = %s, description = %s WHERE id = %s",
+                (campaign_name, title, description, campaign_id)
+            )
+        conn.commit()
+        
+    dashboard_module._campaigns_cache.clear()
+    dashboard_module._cache.clear()
+    
+    return {"message": f"Campaign '{campaign_name}' updated successfully"}
 
 
 @router.delete("/campaigns/{campaign_id}", status_code=status.HTTP_200_OK)

@@ -482,3 +482,14 @@ tbody td { padding: 0.85rem 1rem; font-size: 0.875rem; color: var(--text); verti
   flex-wrap: wrap;
   margin-left: 1.6rem;
 }
+
+/* ── Utilities ── */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+.opacity-25 { opacity: 0.25; }
+.opacity-75 { opacity: 0.75; }
