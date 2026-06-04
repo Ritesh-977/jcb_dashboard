@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import SentimentBreakdowns from '../components/SentimentBreakdowns';
@@ -45,7 +45,17 @@ export default function SentimentDashboard() {
     }
   };
 
+  const currentContext = `${market}-${campaign}`;
+  const lastContext = useRef(currentContext);
+
   useEffect(() => {
+    if (lastContext.current !== currentContext) {
+      setDateFrom(null);
+      setDateTo(null);
+      lastContext.current = currentContext;
+      return;
+    }
+
     const load = async () => {
       setLoading(true);
       setTotals({ comments: 0, positive: 0, neutral: 0, negative: 0 });
@@ -72,6 +82,19 @@ export default function SentimentDashboard() {
           neutral:  getKpi('Neutral Comments'),
           negative: getKpi('Negative Comments'),
         });
+
+        if (comments.length > 0) {
+          const dateObjects = comments.map(c => new Date(c.Date)).filter(d => !isNaN(d));
+          if (dateObjects.length > 0) {
+            const minDate = new Date(Math.min(...dateObjects));
+            const maxDate = new Date(Math.max(...dateObjects));
+            
+            if (!dateFrom && !dateTo) {
+              setDateFrom(minDate);
+              setDateTo(maxDate);
+            }
+          }
+        }
 
         const tagCounts = comments.reduce((acc, c) => {
           acc[c['Keyword Tag']] = (acc[c['Keyword Tag']] ?? 0) + 1;

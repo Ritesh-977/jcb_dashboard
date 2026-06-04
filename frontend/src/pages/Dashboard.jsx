@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import PromoCard from '../components/PromoCard';
 import ChartSection from '../components/ChartSection';
 import MetricsSection from '../components/MetricsSection';
@@ -39,7 +39,17 @@ export default function Dashboard() {
     }
   };
 
-useEffect(() => {
+  const currentContext = `${market}-${campaign}`;
+  const lastContext = useRef(currentContext);
+
+  useEffect(() => {
+    if (lastContext.current !== currentContext) {
+      setDateFrom(null);
+      setDateTo(null);
+      lastContext.current = currentContext;
+      return;
+    }
+
     const timer = setTimeout(() => {
       const load = async () => {
         try {
@@ -72,6 +82,11 @@ useEffect(() => {
               const formatMin = minDate.toLocaleDateString('en-GB', options);
               const formatMax = maxDate.toLocaleDateString('en-GB', options);
               setPromoPeriod(`Promo Period: ${formatMin} – ${formatMax}`);
+
+              if (!dateFrom && !dateTo) {
+                setDateFrom(minDate);
+                setDateTo(maxDate);
+              }
             }
           } else if (dateFrom || dateTo) {
              const options = { day: 'numeric', month: 'long' };

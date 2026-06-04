@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import SentimentTrendChart from '../components/SentimentTrendChart';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -20,16 +20,17 @@ export default function TrendDashboard() {
   const { market } = useMarket();
   const { campaign } = useCampaign();
 
+  const currentContext = `${market}-${campaign}`;
+  const lastContext = useRef(currentContext);
+
   const handleDateFromChange = (date) => {
     setDateFrom(date);
-    // If from date is after to date, clear to date
     if (dateTo && date > dateTo) {
       setDateTo(null);
     }
   };
 
   const handleDateToChange = (date) => {
-    // Only allow to date if it's after or equal to from date
     if (!dateFrom || date >= dateFrom) {
       setDateTo(date);
     }
@@ -49,6 +50,13 @@ export default function TrendDashboard() {
   const [showNegativeDropdown, setShowNegativeDropdown] = useState(false);
 
   useEffect(() => {
+    if (lastContext.current !== currentContext) {
+      setDateFrom(null);
+      setDateTo(null);
+      lastContext.current = currentContext;
+      return;
+    }
+
     const load = async () => {
       try {
         const params = new URLSearchParams();
@@ -59,6 +67,19 @@ export default function TrendDashboard() {
         const query = params.toString() ? `?${params}` : '';
 
         const comments = await apiFetch(`/comments/${query}`);
+
+        if (comments.length > 0) {
+          const dateObjects = comments.map(c => new Date(c.Date)).filter(d => !isNaN(d));
+          if (dateObjects.length > 0) {
+            const minDate = new Date(Math.min(...dateObjects));
+            const maxDate = new Date(Math.max(...dateObjects));
+            
+            if (!dateFrom && !dateTo) {
+              setDateFrom(minDate);
+              setDateTo(maxDate);
+            }
+          }
+        }
 
         // Count keyword frequencies
         const keywordCounts = comments.reduce((acc, c) => {
