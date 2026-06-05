@@ -647,20 +647,8 @@ def sync_comments_to_posts(cursor, market_code: str) -> None:
         WHERE comments.id = best.comment_id
     """, (market_code,))
             
-    # Always refresh comments_count on posts for this market
-    cursor.execute("""
-        MERGE INTO posts p
-        USING (
-            SELECT post_id, COUNT(*) as cnt
-            FROM comments
-            WHERE post_id IS NOT NULL AND market_code = %s
-            GROUP BY post_id
-        ) c
-        ON p.id = c.post_id AND c.cnt > COALESCE(p.comments_count, 0)
-        WHEN MATCHED THEN
-            UPDATE SET p.comments_count = c.cnt,
-                       p.total_engagement = GREATEST(
-                           COALESCE(p.total_engagement, 0),
-                           COALESCE(p.likes, 0) + c.cnt + COALESCE(p.shares, 0)
-                       )
-    """, (market_code,))
+    # Note: We intentionally do NOT auto-update p.comments_count or p.total_engagement 
+    # based on the number of actual comment rows linked to the post. The user explicitly 
+    # requested that the counts provided in the Posts CSV upload are strictly respected 
+    # and not combined/overwritten by the Comments CSV upload.
+    pass
