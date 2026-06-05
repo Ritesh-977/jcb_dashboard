@@ -17,6 +17,8 @@ export default function Dashboard() {
   const [sentimentData, setSentimentData] = useState([]);
   const [totalInteractions, setTotalInteractions] = useState(0);
   const [totalShares, setTotalShares] = useState(0);
+  const [totalLikes, setTotalLikes] = useState(0);
+  const [totalComments, setTotalComments] = useState(0);
   const [loading, setLoading] = useState(true);     // only true on first mount
   const [error, setError] = useState(null);
   const { dateFrom, handleDateFromChange, dateTo, handleDateToChange, clearDates, autoSetDates } = useDateFilter();
@@ -48,6 +50,8 @@ export default function Dashboard() {
           });
           setChartData(Object.values(grouped));
           setTotalShares(posts.reduce((sum, p) => sum + (p.Shares || 0), 0));
+          setTotalLikes(posts.reduce((sum, p) => sum + (p.Likes || 0), 0));
+          setTotalComments(posts.reduce((sum, p) => sum + (p['Comments Count'] || 0), 0));
 
           if (posts.length > 0) {
             const dateObjects = posts.map(p => new Date(p.Date)).filter(d => !isNaN(d));
@@ -192,7 +196,7 @@ export default function Dashboard() {
                 No data available for the selected date range.
               </div>
             ) : (
-              <MetricsSection kpiData={kpiData} sentimentData={sentimentData} totalShares={totalShares} />
+              <MetricsSection kpiData={kpiData} sentimentData={sentimentData} totalShares={totalShares} totalLikes={totalLikes} totalComments={totalComments} />
             )}
           </div>
         </div>

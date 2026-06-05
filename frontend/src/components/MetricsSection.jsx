@@ -8,11 +8,9 @@ const MetricCard = ({ value, label, comparison, valueColor = 'text-[#2bb5e8]' })
   </div>
 );
 
-const MetricsSection = ({ kpiData, sentimentData, totalShares = 0 }) => {
+const MetricsSection = ({ kpiData, sentimentData, totalShares = 0, totalLikes = 0, totalComments = 0 }) => {
   const get = (metric) => kpiData.find((k) => k.Metric === metric)?.Value ?? 0;
 
-  const totalLikes = get('Total Likes');
-  const totalComments = get('Total Comments');
   const netSentiment = `${Math.round(get('Net Sentiment %') * 100)}%`;
   const positivePct = `${Math.round(get('Positive %') * 100)}%`;
   const negativePct = `${Math.round(get('Negative %') * 100)}%`;
