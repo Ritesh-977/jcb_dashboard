@@ -8,6 +8,7 @@ import { apiFetch } from '../api';
 import S from '../components/Skeleton';
 import { useMarket } from '../context/MarketContext';
 import { useCampaign } from '../context/CampaignContext';
+import { useDateFilter } from '../hooks/useDateFilter';
 
 export default function Dashboard() {
   const today = new Date();
@@ -18,37 +19,12 @@ export default function Dashboard() {
   const [totalShares, setTotalShares] = useState(0);
   const [loading, setLoading] = useState(true);     // only true on first mount
   const [error, setError] = useState(null);
-  const [dateFrom, setDateFrom] = useState(null);
-  const [dateTo, setDateTo] = useState(null);
+  const { dateFrom, handleDateFromChange, dateTo, handleDateToChange, clearDates, autoSetDates } = useDateFilter();
   const [promoPeriod, setPromoPeriod] = useState('Promo Period: 6 May – 29 July');
   const { market } = useMarket();
   const { campaign, campaigns } = useCampaign();
 
-  const handleDateFromChange = (date) => {
-    setDateFrom(date);
-    // If from date is after to date, clear to date
-    if (dateTo && date > dateTo) {
-      setDateTo(null);
-    }
-  };
-
-  const handleDateToChange = (date) => {
-    // Only allow to date if it's after or equal to from date
-    if (!dateFrom || date >= dateFrom) {
-      setDateTo(date);
-    }
-  };
-
-  const currentContext = `${market}-${campaign}`;
-  const lastContext = useRef(currentContext);
-
   useEffect(() => {
-    if (lastContext.current !== currentContext) {
-      setDateFrom(null);
-      setDateTo(null);
-      lastContext.current = currentContext;
-      return;
-    }
 
     const timer = setTimeout(() => {
       const load = async () => {
@@ -84,8 +60,7 @@ export default function Dashboard() {
               setPromoPeriod(`Promo Period: ${formatMin} – ${formatMax}`);
 
               if (!dateFrom && !dateTo) {
-                setDateFrom(minDate);
-                setDateTo(maxDate);
+                autoSetDates(minDate, maxDate);
               }
             }
           } else if (dateFrom || dateTo) {
@@ -185,7 +160,7 @@ export default function Dashboard() {
                 <span className="absolute right-1 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs pointer-events-none">📅</span>
               </div>
               {(dateFrom || dateTo) && (
-                <button onClick={() => { setDateFrom(null); setDateTo(null); }} className="text-gray-400 hover:text-gray-600 text-xs ml-1">✕</button>
+                <button onClick={clearDates} className="text-gray-400 hover:text-gray-600 text-xs ml-1">✕</button>
               )}
             </div>
           </div>

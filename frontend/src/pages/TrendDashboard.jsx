@@ -6,6 +6,7 @@ import { apiFetch } from '../api';
 import S from '../components/Skeleton';
 import { useMarket } from '../context/MarketContext';
 import { useCampaign } from '../context/CampaignContext';
+import { useDateFilter } from '../hooks/useDateFilter';
 
 export default function TrendDashboard() {
   const today = new Date();
@@ -15,26 +16,9 @@ export default function TrendDashboard() {
   const [selectedKeywords, setSelectedKeywords] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [dateFrom, setDateFrom] = useState(null);
-  const [dateTo, setDateTo] = useState(null);
+  const { dateFrom, handleDateFromChange, dateTo, handleDateToChange, clearDates, autoSetDates } = useDateFilter();
   const { market } = useMarket();
   const { campaign } = useCampaign();
-
-  const currentContext = `${market}-${campaign}`;
-  const lastContext = useRef(currentContext);
-
-  const handleDateFromChange = (date) => {
-    setDateFrom(date);
-    if (dateTo && date > dateTo) {
-      setDateTo(null);
-    }
-  };
-
-  const handleDateToChange = (date) => {
-    if (!dateFrom || date >= dateFrom) {
-      setDateTo(date);
-    }
-  };
 
   const handleKeywordToggle = (keyword) => {
     setSelectedKeywords(prev => {
@@ -50,12 +34,6 @@ export default function TrendDashboard() {
   const [showNegativeDropdown, setShowNegativeDropdown] = useState(false);
 
   useEffect(() => {
-    if (lastContext.current !== currentContext) {
-      setDateFrom(null);
-      setDateTo(null);
-      lastContext.current = currentContext;
-      return;
-    }
 
     const load = async () => {
       try {
@@ -75,8 +53,7 @@ export default function TrendDashboard() {
             const maxDate = new Date(Math.max(...dateObjects));
             
             if (!dateFrom && !dateTo) {
-              setDateFrom(minDate);
-              setDateTo(maxDate);
+              autoSetDates(minDate, maxDate);
             }
           }
         }
@@ -197,7 +174,7 @@ export default function TrendDashboard() {
             <span className="absolute right-1 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs pointer-events-none">📅</span>
           </div>
           {(dateFrom || dateTo) && (
-            <button onClick={() => { setDateFrom(null); setDateTo(null); }} className="text-gray-400 hover:text-gray-600 text-xs ml-1">✕</button>
+            <button onClick={clearDates} className="text-gray-400 hover:text-gray-600 text-xs ml-1">✕</button>
           )}
         </div>
       </div>

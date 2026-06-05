@@ -277,10 +277,10 @@ def process_posts(rows: list[dict], field_map: dict, market_code: str,
             g("detail"),                        # content
             g("link"),                          # link
             sentiment,
-            _to_int(g("likes")),
-            _to_int(g("comments_count")),
-            _to_int(g("shares")),
-            _to_int(g("total_engagement")),
+            _to_int(g("likes") or g("like")),
+            _to_int(g("comments_count") or g("comments") or g("comment_text") or g("comment")),
+            _to_int(g("shares") or g("share")),
+            _to_int(g("total_engagement") or g("engagement")),
             _to_int(g("audience")),
             _to_int(g("reach")),
             g("media_type"),
@@ -291,12 +291,50 @@ def process_posts(rows: list[dict], field_map: dict, market_code: str,
         ))
 
     cursor.executemany("""
-        INSERT INTO posts (
-            market_code, campaign_id, publish_date, update_date,
-            platform, source_name, title, content, link, sentiment,
-            likes, comments_count, shares, total_engagement,
-            audience, reach, media_type, tags, language, ranking, notes
-        ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        MERGE INTO posts t
+        USING (
+            SELECT 
+                %s AS market_code, %s AS campaign_id, %s AS publish_date, %s AS update_date,
+                %s AS platform, %s AS source_name, %s AS title, %s AS content, %s AS link, 
+                %s AS sentiment, %s AS likes, %s AS comments_count, %s AS shares, 
+                %s AS total_engagement, %s AS audience, %s AS reach, %s AS media_type, 
+                %s AS tags, %s AS language, %s AS ranking, %s AS notes
+        ) s
+        ON t.market_code = s.market_code 
+           AND (
+               (s.link IS NOT NULL AND s.link != '' AND t.link = s.link)
+               OR 
+               ((s.link IS NULL OR s.link = '') AND NVL(t.title, '') = NVL(s.title, '') AND NVL(t.platform, '') = NVL(s.platform, ''))
+           )
+        WHEN MATCHED THEN
+            UPDATE SET 
+                campaign_id = NVL(s.campaign_id, t.campaign_id),
+                update_date = NVL(s.update_date, t.update_date),
+                content = NVL(s.content, t.content),
+                sentiment = IFF(s.sentiment != '', NVL(s.sentiment, t.sentiment), t.sentiment),
+                likes = GREATEST(NVL(t.likes, 0), s.likes),
+                comments_count = GREATEST(NVL(t.comments_count, 0), s.comments_count),
+                shares = GREATEST(NVL(t.shares, 0), s.shares),
+                total_engagement = GREATEST(NVL(t.total_engagement, 0), s.total_engagement),
+                audience = GREATEST(NVL(t.audience, 0), s.audience),
+                reach = GREATEST(NVL(t.reach, 0), s.reach),
+                media_type = IFF(s.media_type != '', NVL(s.media_type, t.media_type), t.media_type),
+                tags = IFF(s.tags != '', NVL(s.tags, t.tags), t.tags),
+                language = IFF(s.language != '', NVL(s.language, t.language), t.language),
+                ranking = IFF(s.ranking = 0, t.ranking, s.ranking),
+                notes = IFF(s.notes != '', NVL(s.notes, t.notes), t.notes)
+        WHEN NOT MATCHED THEN
+            INSERT (
+                market_code, campaign_id, publish_date, update_date,
+                platform, source_name, title, content, link, sentiment,
+                likes, comments_count, shares, total_engagement,
+                audience, reach, media_type, tags, language, ranking, notes
+            ) VALUES (
+                s.market_code, s.campaign_id, s.publish_date, s.update_date,
+                s.platform, s.source_name, s.title, s.content, s.link, s.sentiment,
+                s.likes, s.comments_count, s.shares, s.total_engagement,
+                s.audience, s.reach, s.media_type, s.tags, s.language, s.ranking, s.notes
+            )
     """, post_params)
 
     # ── Extract authors for posts that have author data ──
@@ -521,7 +559,6 @@ def sync_comments_to_posts(cursor, market_code: str) -> None:
             cursor.executemany("UPDATE comments SET post_id = %s WHERE id = %s", updates)
             
     # Always refresh comments_count on posts for this market
-    cursor.execute("UPDATE posts SET comments_count = 0, total_engagement = COALESCE(likes,0) + COALESCE(shares,0) WHERE market_code = %s", (market_code,))
     cursor.execute("""
         MERGE INTO posts p
         USING (
@@ -530,8 +567,11 @@ def sync_comments_to_posts(cursor, market_code: str) -> None:
             WHERE post_id IS NOT NULL AND market_code = %s
             GROUP BY post_id
         ) c
-        ON p.id = c.post_id
+        ON p.id = c.post_id AND c.cnt > COALESCE(p.comments_count, 0)
         WHEN MATCHED THEN
             UPDATE SET p.comments_count = c.cnt,
-                       p.total_engagement = COALESCE(p.likes,0) + c.cnt + COALESCE(p.shares,0)
+                       p.total_engagement = GREATEST(
+                           COALESCE(p.total_engagement, 0),
+                           COALESCE(p.likes, 0) + c.cnt + COALESCE(p.shares, 0)
+                       )
     """, (market_code,))

@@ -8,6 +8,7 @@ import { apiFetch } from '../api';
 import S from '../components/Skeleton';
 import { useMarket } from '../context/MarketContext';
 import { useCampaign } from '../context/CampaignContext';
+import { useDateFilter } from '../hooks/useDateFilter';
 
 const SIZE_SCALE = (count) => {
   if (count >= 5) return 'text-5xl';
@@ -27,34 +28,11 @@ export default function SentimentDashboard() {
   const [totals, setTotals] = useState({ comments: 0, positive: 0, neutral: 0, negative: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [dateFrom, setDateFrom] = useState(null);
-  const [dateTo, setDateTo] = useState(null);
+  const { dateFrom, handleDateFromChange, dateTo, handleDateToChange, clearDates, autoSetDates } = useDateFilter();
   const { market } = useMarket();
   const { campaign } = useCampaign();
 
-  const handleDateFromChange = (date) => {
-    setDateFrom(date);
-    if (dateTo && date > dateTo) {
-      setDateTo(null);
-    }
-  };
-
-  const handleDateToChange = (date) => {
-    if (!dateFrom || date >= dateFrom) {
-      setDateTo(date);
-    }
-  };
-
-  const currentContext = `${market}-${campaign}`;
-  const lastContext = useRef(currentContext);
-
   useEffect(() => {
-    if (lastContext.current !== currentContext) {
-      setDateFrom(null);
-      setDateTo(null);
-      lastContext.current = currentContext;
-      return;
-    }
 
     const load = async () => {
       setLoading(true);
@@ -90,8 +68,7 @@ export default function SentimentDashboard() {
             const maxDate = new Date(Math.max(...dateObjects));
             
             if (!dateFrom && !dateTo) {
-              setDateFrom(minDate);
-              setDateTo(maxDate);
+              autoSetDates(minDate, maxDate);
             }
           }
         }
@@ -185,7 +162,7 @@ export default function SentimentDashboard() {
               <span className="absolute right-1 top-1/2 transform -translate-y-1/2 text-gray-400 text-xs pointer-events-none">📅</span>
             </div>
             {(dateFrom || dateTo) && (
-              <button onClick={() => { setDateFrom(null); setDateTo(null); }} className="text-gray-400 hover:text-gray-600 text-xs ml-1">✕</button>
+              <button onClick={clearDates} className="text-gray-400 hover:text-gray-600 text-xs ml-1">✕</button>
             )}
           </div>
         </div>
