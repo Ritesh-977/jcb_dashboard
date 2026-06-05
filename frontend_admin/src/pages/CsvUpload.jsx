@@ -198,6 +198,17 @@ export default function CsvUpload() {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: form,
       });
+
+      // Handle non-JSON responses (e.g. 504 Gateway Timeout returns HTML)
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error(
+          res.status === 504
+            ? 'Upload timed out — the server took too long to process. Please try uploading a smaller file or contact support.'
+            : `Server returned an unexpected response (HTTP ${res.status}). Please try again.`
+        );
+      }
+
       const data = await res.json();
 
       clearInterval(progressInterval);

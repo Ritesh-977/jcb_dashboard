@@ -428,7 +428,8 @@ def process_comments(rows: list[dict], field_map: dict, market_code: str,
     """
     Insert comment rows into the `comments` table with deduplication.
 
-    Uses MERGE to skip rows that already exist with the same
+    Uses a temp staging table + single MERGE to avoid per-row round-trips.
+    Skips rows that already exist with the same
     (comment_text, comment_date, platform, market_code) — this prevents
     duplicate comments when the same CSV is uploaded more than once.
 
@@ -437,7 +438,8 @@ def process_comments(rows: list[dict], field_map: dict, market_code: str,
     if not rows:
         return 0
 
-    count = 0
+    # 1. Collect all comment params in memory
+    comment_params = []
     for row in rows:
         g = lambda field, default=None: _get(row, field_map, field, default)
 
@@ -453,25 +455,55 @@ def process_comments(rows: list[dict], field_map: dict, market_code: str,
         keyword_type = g("keyword_type")
         post_link = g("comment_link") or g("link")
 
-        cursor.execute("""
-            MERGE INTO comments t
-            USING (SELECT %s AS mc, %s AS cd, %s AS pl, %s AS ct) s
-            ON  t.market_code  = s.mc
-            AND NVL(t.comment_date::VARCHAR, '') = NVL(s.cd::VARCHAR, '')
-            AND NVL(t.platform, '')  = NVL(s.pl, '')
-            AND t.comment_text = s.ct
-            WHEN NOT MATCHED THEN
-                INSERT (post_id, market_code, comment_date, platform,
-                        comment_text, sentiment, keyword_tag, keyword_type, post_link)
-                VALUES (NULL, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (
-            market_code, comment_date, platform, comment_text,
+        comment_params.append((
             market_code, comment_date, platform, comment_text,
             sentiment, keyword_tag, keyword_type, post_link,
         ))
-        count += 1
 
-    return count
+    if not comment_params:
+        return 0
+
+    # 2. Create temp staging table for bulk load
+    cursor.execute("""
+        CREATE TEMPORARY TABLE IF NOT EXISTS temp_comments_stage (
+            market_code VARCHAR, comment_date DATE, platform VARCHAR,
+            comment_text VARCHAR, sentiment VARCHAR, keyword_tag VARCHAR,
+            keyword_type VARCHAR, post_link VARCHAR
+        )
+    """)
+    cursor.execute("TRUNCATE TABLE temp_comments_stage")
+
+    # 3. Bulk insert all comments into staging (single executemany call)
+    cursor.executemany("""
+        INSERT INTO temp_comments_stage
+            (market_code, comment_date, platform, comment_text,
+             sentiment, keyword_tag, keyword_type, post_link)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+    """, comment_params)
+
+    # 4. Single MERGE from staging → comments (deduplicates automatically)
+    cursor.execute("""
+        MERGE INTO comments t
+        USING (
+            SELECT DISTINCT market_code, comment_date, platform,
+                   comment_text, sentiment, keyword_tag, keyword_type, post_link
+            FROM temp_comments_stage
+        ) s
+        ON  t.market_code  = s.market_code
+        AND NVL(t.comment_date::VARCHAR, '') = NVL(s.comment_date::VARCHAR, '')
+        AND NVL(t.platform, '')  = NVL(s.platform, '')
+        AND t.comment_text = s.comment_text
+        WHEN NOT MATCHED THEN
+            INSERT (post_id, market_code, comment_date, platform,
+                    comment_text, sentiment, keyword_tag, keyword_type, post_link)
+            VALUES (NULL, s.market_code, s.comment_date, s.platform,
+                    s.comment_text, s.sentiment, s.keyword_tag, s.keyword_type, s.post_link)
+    """)
+
+    # 5. Cleanup
+    cursor.execute("DROP TABLE IF EXISTS temp_comments_stage")
+
+    return len(comment_params)
 
 
 def stage_raw_ingestion(rows: list[dict], field_map: dict, market_code: str,
@@ -518,18 +550,18 @@ def sync_comments_to_posts(cursor, market_code: str) -> None:
     """
     # 1. Link comments by post_link if available
     cursor.execute("""
-        UPDATE comments c
+        UPDATE comments
         SET post_id = p.id
         FROM posts p
-        WHERE c.post_id IS NULL 
-          AND c.post_link IS NOT NULL 
-          AND c.post_link = p.link
-          AND c.market_code = %s
+        WHERE comments.post_id IS NULL 
+          AND comments.post_link IS NOT NULL 
+          AND comments.post_link = p.link
+          AND comments.market_code = %s
     """, (market_code,))
     
     # 2. Link remaining unlinked comments by closest date match
     cursor.execute("""
-        UPDATE comments c
+        UPDATE comments
         SET post_id = best.post_id
         FROM (
             SELECT 
@@ -547,7 +579,7 @@ def sync_comments_to_posts(cursor, market_code: str) -> None:
                 ORDER BY COALESCE(ABS(DATEDIFF(day, c.comment_date, p.publish_date)), 9999) ASC
             ) = 1
         ) best
-        WHERE c.id = best.comment_id
+        WHERE comments.id = best.comment_id
     """, (market_code,))
             
     # Always refresh comments_count on posts for this market

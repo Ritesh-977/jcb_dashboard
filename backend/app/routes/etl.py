@@ -145,8 +145,12 @@ async def upload_csv(
             category_counts["comments"] = count
 
         if "posts" in categories or "comments" in categories:
-            from app.services.csv_processor import sync_comments_to_posts
-            sync_comments_to_posts(cursor, market_code)
+            try:
+                from app.services.csv_processor import sync_comments_to_posts
+                sync_comments_to_posts(cursor, market_code)
+            except Exception as sync_err:
+                import logging
+                logging.warning(f"sync_comments_to_posts failed (non-fatal): {sync_err}")
 
         conn.commit()
 
