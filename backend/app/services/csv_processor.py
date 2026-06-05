@@ -550,23 +550,19 @@ def process_comments(rows: list[dict], field_map: dict, market_code: str,
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
     """, comment_params)
 
-    # 4. Single MERGE from staging → comments (deduplicates automatically)
+    # 4. Single INSERT from staging → comments
+    # We use INSERT instead of MERGE because a single CSV might contain multiple identical 
+    # comments (e.g. 5 people commenting "Nice" on the same day). Using DISTINCT or MERGE 
+    # would silently drop those valid duplicate comments.
     cursor.execute("""
-        MERGE INTO comments t
-        USING (
-            SELECT DISTINCT market_code, comment_date, platform,
-                   comment_text, sentiment, keyword_tag, keyword_type, post_link
-            FROM temp_comments_stage
-        ) s
-        ON  t.market_code  = s.market_code
-        AND NVL(t.comment_date::VARCHAR, '') = NVL(s.comment_date::VARCHAR, '')
-        AND NVL(t.platform, '')  = NVL(s.platform, '')
-        AND t.comment_text = s.comment_text
-        WHEN NOT MATCHED THEN
-            INSERT (post_id, market_code, comment_date, platform,
-                    comment_text, sentiment, keyword_tag, keyword_type, post_link)
-            VALUES (NULL, s.market_code, s.comment_date, s.platform,
-                    s.comment_text, s.sentiment, s.keyword_tag, s.keyword_type, s.post_link)
+        INSERT INTO comments (
+            post_id, market_code, comment_date, platform,
+            comment_text, sentiment, keyword_tag, keyword_type, post_link
+        )
+        SELECT 
+            NULL, market_code, comment_date, platform,
+            comment_text, sentiment, keyword_tag, keyword_type, post_link
+        FROM temp_comments_stage
     """)
 
     # 5. Cleanup
