@@ -527,36 +527,28 @@ def sync_comments_to_posts(cursor, market_code: str) -> None:
           AND c.market_code = %s
     """, (market_code,))
     
-    # 2. Fetch remaining unlinked comments for this market
+    # 2. Link remaining unlinked comments by closest date match
     cursor.execute("""
-        SELECT id, comment_date, platform 
-        FROM comments 
-        WHERE post_id IS NULL AND market_code = %s
+        UPDATE comments c
+        SET post_id = best.post_id
+        FROM (
+            SELECT 
+                c.id AS comment_id,
+                p.id AS post_id
+            FROM comments c
+            JOIN posts p 
+              ON p.market_code = c.market_code 
+              AND UPPER(NVL(p.platform, '')) = UPPER(NVL(c.platform, ''))
+              AND p.platform IS NOT NULL AND p.platform != ''
+            WHERE c.post_id IS NULL 
+              AND c.market_code = %s
+            QUALIFY ROW_NUMBER() OVER (
+                PARTITION BY c.id 
+                ORDER BY COALESCE(ABS(DATEDIFF(day, c.comment_date, p.publish_date)), 9999) ASC
+            ) = 1
+        ) best
+        WHERE c.id = best.comment_id
     """, (market_code,))
-    unlinked = cursor.fetchall()
-
-    if unlinked:
-        # Fetch posts for this market
-        cursor.execute("SELECT id, publish_date, platform FROM posts WHERE market_code = %s", (market_code,))
-        posts = cursor.fetchall()
-        
-        updates = []
-        for cid, c_date, c_platform in unlinked:
-            best_post_id = None
-            min_diff = None
-            
-            for pid, p_date, p_platform in posts:
-                if p_platform and c_platform and p_platform.upper() == c_platform.upper():
-                    diff = abs((p_date - c_date).days) if p_date and c_date else 9999
-                    if min_diff is None or diff < min_diff:
-                        min_diff = diff
-                        best_post_id = pid
-            
-            if best_post_id is not None:
-                updates.append((best_post_id, cid))
-                
-        if updates:
-            cursor.executemany("UPDATE comments SET post_id = %s WHERE id = %s", updates)
             
     # Always refresh comments_count on posts for this market
     cursor.execute("""
