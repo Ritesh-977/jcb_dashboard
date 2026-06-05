@@ -226,6 +226,18 @@ def normalize_headers(raw_headers: list[str]) -> dict[str, str]:
     return mapping
 
 
+def build_reverse_map(field_map: dict[str, str]) -> dict[str, str]:
+    """
+    Build a reverse lookup: { canonical_name: raw_header }.
+    First match wins (preserves priority order).
+    """
+    reverse = {}
+    for raw_header, canon in field_map.items():
+        if canon not in reverse:
+            reverse[canon] = raw_header
+    return reverse
+
+
 def detect_categories(field_map: dict[str, str]) -> set[str]:
     """
     Determine which data categories are present based on the mapped headers.
@@ -249,11 +261,11 @@ def detect_categories(field_map: dict[str, str]) -> set[str]:
 def process_posts(rows: list[dict], field_map: dict, market_code: str,
                   campaign_id: Optional[int], batch_id: str, cursor) -> int:
     """
-    Insert post rows into the `posts` table and extract author data.
+    Upsert post rows into the `posts` table using temp staging + single MERGE.
 
-    - Always INSERTs (append semantics) — no duplicate checking on posts.
-    - Missing columns default to None/0.
-    - Returns the number of posts inserted.
+    Uses a temporary table for bulk loading, then a single MERGE for
+    deduplication (matching on link or title+platform).
+    Returns the number of posts processed.
     """
     if not rows:
         return 0
@@ -271,11 +283,11 @@ def process_posts(rows: list[dict], field_map: dict, market_code: str,
             campaign_id,
             _to_date(g("publish_date")),
             _to_date(g("update_date")),
-            platform,                           # platform
-            g("source"),                        # source_name
-            g("title"),                         # title
-            g("detail"),                        # content
-            g("link"),                          # link
+            platform,
+            g("source"),
+            g("title"),
+            g("detail"),
+            g("link"),
             sentiment,
             _to_int(g("likes") or g("like")),
             _to_int(g("comments_count") or g("comments") or g("comment_text") or g("comment")),
@@ -290,15 +302,51 @@ def process_posts(rows: list[dict], field_map: dict, market_code: str,
             g("notes"),
         ))
 
+    if not post_params:
+        return 0
+
+    # 1. Create temp staging table
+    cursor.execute("""
+        CREATE TEMPORARY TABLE IF NOT EXISTS temp_posts_stage (
+            market_code VARCHAR, campaign_id NUMBER, publish_date DATE,
+            update_date DATE, platform VARCHAR, source_name VARCHAR,
+            title VARCHAR, content VARCHAR, link VARCHAR, sentiment VARCHAR,
+            likes NUMBER, comments_count NUMBER, shares NUMBER,
+            total_engagement NUMBER, audience NUMBER, reach NUMBER,
+            media_type VARCHAR, tags VARCHAR, language VARCHAR,
+            ranking NUMBER, notes VARCHAR
+        )
+    """)
+    cursor.execute("TRUNCATE TABLE temp_posts_stage")
+
+    # 2. Bulk INSERT into staging (executemany with INSERT IS truly batched)
     cursor.executemany("""
+        INSERT INTO temp_posts_stage (
+            market_code, campaign_id, publish_date, update_date,
+            platform, source_name, title, content, link, sentiment,
+            likes, comments_count, shares, total_engagement,
+            audience, reach, media_type, tags, language, ranking, notes
+        ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+    """, post_params)
+
+    # 3. Single MERGE from staging → posts (deduplicated to avoid duplicate-row errors)
+    cursor.execute("""
         MERGE INTO posts t
         USING (
             SELECT 
-                %s AS market_code, %s AS campaign_id, %s AS publish_date, %s AS update_date,
-                %s AS platform, %s AS source_name, %s AS title, %s AS content, %s AS link, 
-                %s AS sentiment, %s AS likes, %s AS comments_count, %s AS shares, 
-                %s AS total_engagement, %s AS audience, %s AS reach, %s AS media_type, 
-                %s AS tags, %s AS language, %s AS ranking, %s AS notes
+                market_code, ANY_VALUE(campaign_id) AS campaign_id,
+                ANY_VALUE(publish_date) AS publish_date, ANY_VALUE(update_date) AS update_date,
+                platform, ANY_VALUE(source_name) AS source_name,
+                title, ANY_VALUE(content) AS content, link,
+                ANY_VALUE(sentiment) AS sentiment,
+                MAX(likes) AS likes, MAX(comments_count) AS comments_count,
+                MAX(shares) AS shares, MAX(total_engagement) AS total_engagement,
+                MAX(audience) AS audience, MAX(reach) AS reach,
+                ANY_VALUE(media_type) AS media_type, ANY_VALUE(tags) AS tags,
+                ANY_VALUE(language) AS language, MAX(ranking) AS ranking,
+                ANY_VALUE(notes) AS notes
+            FROM temp_posts_stage
+            GROUP BY market_code, platform, title, link
         ) s
         ON t.market_code = s.market_code 
            AND (
@@ -335,10 +383,10 @@ def process_posts(rows: list[dict], field_map: dict, market_code: str,
                 s.likes, s.comments_count, s.shares, s.total_engagement,
                 s.audience, s.reach, s.media_type, s.tags, s.language, s.ranking, s.notes
             )
-    """, post_params)
+    """)
 
-    # ── Extract authors for posts that have author data ──
-    links = [_get(row, field_map, "link") for row in rows if _get(row, field_map, "link")]
+    # 4. Extract authors (batch lookup + batch insert)
+    links = [p[8] for p in post_params if p[8]]  # index 8 = link
     if links:
         placeholders = ','.join(['%s'] * len(links))
         cursor.execute(f"""
@@ -372,55 +420,76 @@ def process_posts(rows: list[dict], field_map: dict, market_code: str,
                 ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
             """, author_params)
 
+    # 5. Cleanup
+    cursor.execute("DROP TABLE IF EXISTS temp_posts_stage")
+
     return len(post_params)
 
 
 def process_kpis(rows: list[dict], field_map: dict, market_code: str,
                  batch_id: str, cursor) -> int:
     """
-    Upsert KPI rows into `kpi_summaries`.
+    Upsert KPI rows into `kpi_summaries` using temp staging + single MERGE.
 
-    Uses MERGE (upsert) on the natural key (market_code + metric_name + report_date):
-    - If the same metric for the same market+date already exists → UPDATE value
-    - Otherwise → INSERT new row
-    This enables sequential uploads to overwrite stale KPIs while preserving others.
-
+    Uses a temporary table for bulk loading, then a single MERGE on the
+    natural key (market_code + metric_name + report_date).
     Returns the number of KPI rows processed.
     """
     if not rows:
         return 0
 
-    count = 0
+    kpi_params = []
     for row in rows:
         g = lambda field, default=None: _get(row, field_map, field, default)
 
         metric_name = g("metric_name")
         if not metric_name:
-            continue  # skip rows with no metric name
+            continue
 
-        metric_value = _to_float(g("metric_value"))
-        report_date = _to_date(g("report_date"))
-
-        # MERGE = upsert on (market_code, metric_name, report_date)
-        cursor.execute("""
-            MERGE INTO kpi_summaries t
-            USING (SELECT %s AS mc, %s AS mn, %s AS rd) s
-            ON t.market_code = s.mc
-               AND t.metric_name = s.mn
-               AND NVL(t.report_date, '1900-01-01') = NVL(s.rd, '1900-01-01')
-            WHEN MATCHED THEN
-                UPDATE SET metric_value = %s, batch_id = %s
-            WHEN NOT MATCHED THEN
-                INSERT (market_code, metric_name, metric_value, report_date, batch_id)
-                VALUES (%s, %s, %s, %s, %s)
-        """, (
-            market_code, metric_name, report_date,
-            metric_value, batch_id,
-            market_code, metric_name, metric_value, report_date, batch_id,
+        kpi_params.append((
+            market_code,
+            metric_name,
+            _to_float(g("metric_value")),
+            _to_date(g("report_date")),
+            batch_id,
         ))
-        count += 1
 
-    return count
+    if not kpi_params:
+        return 0
+
+    # 1. Create temp staging table
+    cursor.execute("""
+        CREATE TEMPORARY TABLE IF NOT EXISTS temp_kpis_stage (
+            market_code VARCHAR, metric_name VARCHAR,
+            metric_value FLOAT, report_date DATE, batch_id VARCHAR
+        )
+    """)
+    cursor.execute("TRUNCATE TABLE temp_kpis_stage")
+
+    # 2. Bulk INSERT into staging
+    cursor.executemany("""
+        INSERT INTO temp_kpis_stage (market_code, metric_name, metric_value, report_date, batch_id)
+        VALUES (%s, %s, %s, %s, %s)
+    """, kpi_params)
+
+    # 3. Single MERGE from staging → kpi_summaries
+    cursor.execute("""
+        MERGE INTO kpi_summaries t
+        USING temp_kpis_stage s
+        ON t.market_code = s.market_code
+           AND t.metric_name = s.metric_name
+           AND NVL(t.report_date, '1900-01-01') = NVL(s.report_date, '1900-01-01')
+        WHEN MATCHED THEN
+            UPDATE SET metric_value = s.metric_value, batch_id = s.batch_id
+        WHEN NOT MATCHED THEN
+            INSERT (market_code, metric_name, metric_value, report_date, batch_id)
+            VALUES (s.market_code, s.metric_name, s.metric_value, s.report_date, s.batch_id)
+    """)
+
+    # 4. Cleanup
+    cursor.execute("DROP TABLE IF EXISTS temp_kpis_stage")
+
+    return len(kpi_params)
 
 
 def process_comments(rows: list[dict], field_map: dict, market_code: str,
