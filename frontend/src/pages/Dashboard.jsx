@@ -40,15 +40,18 @@ export default function Dashboard() {
 
           const { posts, kpi, sentiment, metrics } = await apiFetch(`/dashboard/all${query}`);
 
-          const grouped = {};
-          posts.forEach(p => {
-            const key = new Date(p.Date).toLocaleDateString('en-GB', { day: 'numeric', month: 'numeric', year: '2-digit' });
-            if (!grouped[key]) grouped[key] = { date: key, likes: 0, comments: 0, shares: 0 };
-            grouped[key].likes += p.Likes || 0;
-            grouped[key].comments += p['Comments Count'] || 0;
-            grouped[key].shares += p.Shares || 0;
+          const newChartData = posts.map((p, index) => {
+            const dateStr = new Date(p.Date).toLocaleDateString('en-GB', { day: 'numeric', month: 'numeric', year: '2-digit' });
+            return {
+              uniqueKey: `${dateStr}-${index}`,
+              date: dateStr,
+              platform: p.Platform,
+              likes: p.Likes || 0,
+              comments: p['Comments Count'] || 0,
+              shares: p.Shares || 0
+            };
           });
-          setChartData(Object.values(grouped));
+          setChartData(newChartData);
           setTotalShares(posts.reduce((sum, p) => sum + (p.Shares || 0), 0));
           setTotalLikes(posts.reduce((sum, p) => sum + (p.Likes || 0), 0));
           setTotalComments(posts.reduce((sum, p) => sum + (p['Comments Count'] || 0), 0));

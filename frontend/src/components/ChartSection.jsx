@@ -4,6 +4,32 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 const SCROLL_THRESHOLD = 20; // data points before we enable scrolling
 const PX_PER_POINT = 40;     // minimum pixels per data point
 
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    const displayLabel = typeof label === 'string' ? label.split('-')[0] : label;
+    return (
+      <div className="bg-white p-3 border border-gray-200 shadow-sm rounded-md text-xs">
+        <p className="font-bold text-gray-700 mb-2">{displayLabel}</p>
+        {data.platform && (
+          <p className="text-gray-600 mb-1">
+            Platform: <span className="font-semibold text-gray-800 capitalize">{data.platform}</span>
+          </p>
+        )}
+        {payload.map((entry, index) => (
+          <p key={`item-${index}`} className="flex items-center gap-2 mb-1">
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }}></span>
+            <span className="text-gray-600 capitalize">{entry.name}:</span>
+            <span className="font-semibold text-gray-800">{entry.value}</span>
+          </p>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
+
+
 const ChartSection = ({ chartData }) => {
   const hasData = chartData && chartData.length > 0 && chartData.some(d => d.likes > 0 || d.comments > 0 || d.shares > 0);
   const needsScroll = chartData.length > SCROLL_THRESHOLD;
@@ -29,9 +55,9 @@ const ChartSection = ({ chartData }) => {
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={chartData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#cbd5e1" />
-                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 8, fill: '#6b7280' }} dy={10} />
+                  <XAxis dataKey="uniqueKey" tickFormatter={(value) => typeof value === 'string' ? value.split('-')[0] : value} axisLine={false} tickLine={false} tick={{ fontSize: 8, fill: '#6b7280' }} dy={10} />
                   <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 8, fill: '#6b7280' }} dx={-10} />
-                  <Tooltip />
+                  <Tooltip content={<CustomTooltip />} />
                   <Area type="monotone" dataKey="likes" stackId="1" stroke="#093963" fill="#093963" fillOpacity={1} />
                   <Area type="monotone" dataKey="comments" stackId="1" stroke="#2cbef0" fill="#2cbef0" fillOpacity={1} />
                   <Area type="monotone" dataKey="shares" stackId="1" stroke="#56e0a8" fill="#56e0a8" fillOpacity={1} />

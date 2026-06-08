@@ -214,7 +214,7 @@ export default function AdminLogin() {
               <div className="admin-brand-sub">Management Portal</div>
             </div>
           </div>
-          <div className="admin-topbar-badge">RESTRICTED ACCESS</div>
+          {/* <div className="admin-topbar-badge">RESTRICTED ACCESS</div> */}
         </div>
 
         <div className="admin-main">
