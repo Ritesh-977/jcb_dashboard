@@ -2,19 +2,19 @@ import React from 'react';
 
 const SENTIMENT_COLORS = {
   Positive: 'bg-[#4de79e] text-[#0b1d3d]',
-  Neutral:  'bg-[#fbbf24] text-[#0b1d3d]',
+  Neutral: 'bg-[#fbbf24] text-[#0b1d3d]',
   Negative: 'bg-[#ef4444] text-white',
 };
 
 const FacebookComments = ({ comments, postLink }) => {
   console.log('FacebookComments received postLink:', postLink);
-  
+
   const getEmbedUrl = (link) => {
     if (!link) return null;
-    
+
     // Clean up Facebook link format
     let cleanLink = link;
-    
+
     // Handle format: /pageId/posts/pageId_postId -> /pageId/posts/postId
     const match = link.match(/\/posts\/(\d+)_(\d+)/);
     if (match) {
@@ -22,7 +22,7 @@ const FacebookComments = ({ comments, postLink }) => {
       const postId = match[2];
       cleanLink = `https://www.facebook.com/${pageId}/posts/${postId}`;
     }
-    
+
     console.log('Cleaned FB link:', cleanLink);
     return `https://www.facebook.com/plugins/post.php?href=${encodeURIComponent(cleanLink)}&width=500&show_text=true`;
   };
@@ -48,13 +48,13 @@ const FacebookComments = ({ comments, postLink }) => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
-  
+
           {/* Left: Embedded Facebook Post */}
           <div className="flex flex-col">
             {embedUrl ? (
               <div className="flex flex-col gap-2">
                 <div className="rounded-lg overflow-hidden border-2 border-[#1877F2] mb-3 bg-white">
-                  <iframe 
+                  <iframe
                     key={postLink}
                     src={embedUrl}
                     width="100%"
@@ -66,9 +66,9 @@ const FacebookComments = ({ comments, postLink }) => {
                     allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
                   ></iframe>
                 </div>
-                <a 
-                  href={postLink} 
-                  target="_blank" 
+                <a
+                  href={postLink}
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-xs text-blue-600 hover:underline text-center"
                 >
@@ -85,12 +85,12 @@ const FacebookComments = ({ comments, postLink }) => {
               </div>
             )}
           </div>
-  
+
           {/* Right: Scrollable comment timeline */}
           <div className="relative pl-2 max-h-[500px] overflow-y-auto pr-2 overflow-x-hidden">
             {/* Vertical timeline line */}
             <div className="absolute left-6 top-4 bottom-8 w-[2px] bg-gray-100 z-0" />
-  
+
             <div className="flex flex-col gap-4 relative z-10">
               {comments.map((comment, index) => (
                 <div key={index} className="flex gap-3 items-start">
@@ -100,7 +100,7 @@ const FacebookComments = ({ comments, postLink }) => {
                       {comment['Comment Text'].charAt(0).toUpperCase()}
                     </span>
                   </div>
-  
+
                   {/* Bubble */}
                   <div className="bg-[#f0f2f5] px-3 py-2 rounded-2xl rounded-tl-sm text-[13px] text-gray-800 max-w-[calc(100%-3rem)] break-words">
                     <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full mr-1 ${SENTIMENT_COLORS[comment.Sentiment]}`}>
@@ -113,7 +113,7 @@ const FacebookComments = ({ comments, postLink }) => {
               ))}
             </div>
           </div>
-  
+
         </div>
       )}
     </div>
