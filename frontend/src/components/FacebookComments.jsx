@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 
 const SENTIMENT_COLORS = {
   Positive: 'bg-[#4de79e] text-[#0b1d3d]',
@@ -7,15 +7,18 @@ const SENTIMENT_COLORS = {
 };
 
 const FacebookComments = ({ comments, postLink }) => {
-  const [sdkLoaded, setSdkLoaded] = useState(false);
-  const [sdkError, setSdkError] = useState(false);
-  const containerRef = useRef(null);
+  const [iframeError, setIframeError] = useState(false);
 
   // Parse and clean link to standard post URL
   const getCleanLink = (link) => {
     if (!link) return null;
-    let cleanLink = link;
-    const match = link.match(/\/posts\/(\d+)_(\d+)/);
+    
+    // Convert mobile Facebook links to standard desktop links. 
+    // m.facebook.com strictly blocks iframes with X-Frame-Options: DENY!
+    let cleanLink = link.replace('//m.facebook.com', '//www.facebook.com');
+
+    // Supports both standard links and API underscore IDs
+    const match = cleanLink.match(/\/posts\/(\d+)_(\d+)/);
     if (match) {
       const pageId = match[1];
       const postId = match[2];
@@ -25,59 +28,6 @@ const FacebookComments = ({ comments, postLink }) => {
   };
 
   const cleanLink = getCleanLink(postLink);
-
-  useEffect(() => {
-    if (window.FB) {
-      setSdkLoaded(true);
-      return;
-    }
-
-    const scriptId = 'facebook-jssdk';
-    if (!document.getElementById(scriptId)) {
-      const script = document.createElement('script');
-      script.id = scriptId;
-      script.src = 'https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v18.0';
-      script.async = true;
-      script.defer = true;
-      script.crossOrigin = 'anonymous';
-      
-      script.onload = () => {
-        console.log('FB SDK Loaded successfully');
-        setSdkLoaded(true);
-      };
-      script.onerror = () => {
-        console.error('FB SDK failed to load');
-        setSdkError(true);
-      };
-
-      document.head.appendChild(script);
-    }
-  }, []);
-
-  useEffect(() => {
-    // Explicitly parse the specific container when the link or SDK status changes
-    if (sdkLoaded && window.FB && cleanLink && containerRef.current) {
-      console.log('Parsing FB XFBML for:', cleanLink);
-      // Give React a tiny moment to commit the DOM, then parse
-      setTimeout(() => {
-        if (window.FB.XFBML && containerRef.current) {
-          window.FB.XFBML.parse(containerRef.current);
-        }
-      }, 50);
-    }
-  }, [cleanLink, sdkLoaded]);
-
-  const FallbackCard = () => (
-    <div className="flex flex-col items-center justify-center border-2 border-gray-200 rounded-lg p-8 text-gray-400 mb-3 h-[500px] w-full">
-      <h3 className="text-gray-800 font-semibold mb-2">Content Restricted or Unavailable</h3>
-      <p className="text-sm text-gray-500 text-center mb-6 max-w-[250px]">
-        This post couldn't be embedded directly. It might be a photo, video, or restricted by Facebook.
-      </p>
-      <a href={postLink} target="_blank" rel="noopener noreferrer" className="px-4 py-2 bg-[#1877F2] text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
-        View on Facebook
-      </a>
-    </div>
-  );
 
   return (
     <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 flex flex-col h-full">
@@ -97,39 +47,66 @@ const FacebookComments = ({ comments, postLink }) => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
-          {/* Left: Embedded Facebook Post */}
+
+          {/* Left Side: Iframe Embed with Fail-Safe Fallback */}
           <div className="flex flex-col">
             {cleanLink ? (
               <div className="flex flex-col gap-2">
-                {sdkError ? (
-                  <FallbackCard />
-                ) : (
-                  <div ref={containerRef} className="rounded-lg overflow-hidden border-2 border-[#1877F2] mb-3 bg-white min-h-[300px] flex justify-center w-full">
-                    <div key={cleanLink} className="fb-post w-full flex justify-center" data-href={cleanLink} data-width="auto" data-show-text="true"></div>
+                <div className="rounded-lg overflow-hidden border-2 border-[#1877F2] mb-3 bg-white min-h-[450px] flex justify-center w-full relative">
+
+                  {/* 1. The Real Iframe */}
+                  <iframe
+                    src={`/api/fb-proxy?href=${encodeURIComponent(cleanLink)}`}
+                    width="100%"
+                    height="450"
+                    style={{ border: 'none' }}
+                    sandbox="allow-scripts allow-same-origin allow-popups"
+                    title="Facebook Post"
+                  />
+
+                  {/* 2. Pure CSS Overlay Fallback Hint (Ensures usability no matter what) */}
+                  <div className="absolute inset-0 bg-gray-50 flex flex-col items-center justify-center p-6 text-center pointer-events-none opacity-0 hover:opacity-100 transition-opacity duration-200 bg-opacity-95">
+                    <p className="text-sm font-semibold text-gray-700 mb-2">Security or Privacy Restriction?</p>
+                    <p className="text-xs text-gray-500 max-w-xs mb-4">
+                      If the live post isn't appearing due to browser tracking protections, view it securely in a new tab.
+                    </p>
+                    <a
+                      href={cleanLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="pointer-events-auto px-4 py-2 bg-[#1877F2] text-white text-xs font-bold rounded-lg shadow hover:bg-blue-600 transition-colors"
+                    >
+                      View Live Post
+                    </a>
                   </div>
-                )}
+
+                </div>
                 <a href={postLink} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline text-center">
                   Open post in new tab →
                 </a>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center border-2 border-gray-200 rounded-lg p-8 text-gray-400 mb-3 h-[500px]">
+              <div className="flex flex-col items-center justify-center border-2 border-gray-200 rounded-lg p-8 text-gray-400 mb-3 h-[450px]">
                 <p className="text-sm font-medium">Select a Facebook post to view</p>
               </div>
             )}
           </div>
 
-          {/* Right: Scrollable comment timeline */}
-          <div className="relative pl-2 max-h-[500px] overflow-y-auto pr-2 overflow-x-hidden">
+          {/* Right Side: Scrollable comment timeline (Fully operational) */}
+          <div className="relative pl-2 max-h-[450px] overflow-y-auto pr-2 overflow-x-hidden">
             <div className="absolute left-6 top-4 bottom-8 w-[2px] bg-gray-100 z-0" />
             <div className="flex flex-col gap-4 relative z-10">
               {comments.map((comment, index) => (
                 <div key={index} className="flex gap-3 items-start">
                   <div className="w-8 h-8 rounded-full bg-[#0b1d3d] flex-shrink-0 mt-1 flex items-center justify-center border-2 border-white shadow-sm">
-                    <span className="text-[10px] font-bold text-white">{comment['Comment Text'].charAt(0).toUpperCase()}</span>
+                    <span className="text-[10px] font-bold text-white">
+                      {comment['Comment Text'] ? comment['Comment Text'].charAt(0).toUpperCase() : '?'}
+                    </span>
                   </div>
                   <div className="bg-[#f0f2f5] px-3 py-2 rounded-2xl rounded-tl-sm text-[13px] text-gray-800 max-w-[calc(100%-3rem)] break-words">
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full mr-1 ${SENTIMENT_COLORS[comment.Sentiment]}`}>{comment.Sentiment}</span>
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full mr-1 ${SENTIMENT_COLORS[comment.Sentiment] || 'bg-gray-200'}`}>
+                      {comment.Sentiment}
+                    </span>
                     <span className="leading-tight">{comment['Comment Text']}</span>
                     <span className="block text-[10px] text-gray-400 mt-1">{comment.Date}</span>
                   </div>
@@ -137,6 +114,7 @@ const FacebookComments = ({ comments, postLink }) => {
               ))}
             </div>
           </div>
+
         </div>
       )}
     </div>
