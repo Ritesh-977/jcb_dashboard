@@ -15,7 +15,36 @@ async def lifespan(app: FastAPI):
     # Don't initialize connection at startup - let it initialize on first use
     yield
 
+from fastapi import FastAPI, Request
+from starlette.middleware.base import BaseHTTPMiddleware
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        csp = (
+    "default-src 'self'; "
+    
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' "
+    "https://connect.facebook.net https://www.facebook.com; "
+    
+    "style-src 'self' 'unsafe-inline'; "
+    
+    "frame-src 'self' "
+    "https://www.facebook.com https://*.facebook.com; "
+    
+    "img-src 'self' data: blob: "
+    "https://*.facebook.com https://*.fbcdn.net; "
+    
+    "connect-src 'self' "
+    "https://www.facebook.com https://connect.facebook.net; "
+)
+        response.headers["Content-Security-Policy"] = csp
+        response.headers["Content-Security-Policy-Report-Only"] = csp
+        return response
+
 app = FastAPI(title="JCB Dashboard API", lifespan=lifespan)
+
+app.add_middleware(SecurityHeadersMiddleware)
 
 app.add_middleware(
     CORSMiddleware,

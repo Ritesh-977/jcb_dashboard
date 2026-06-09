@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 const SENTIMENT_COLORS = {
   Positive: 'bg-[#4de79e] text-[#0b1d3d]',
@@ -9,26 +9,83 @@ const SENTIMENT_COLORS = {
 const FacebookComments = ({ comments, postLink }) => {
   console.log('FacebookComments received postLink:', postLink);
 
-  const getEmbedUrl = (link) => {
+  const [sdkLoaded, setSdkLoaded] = useState(false);
+  const [sdkError, setSdkError] = useState(false);
+
+  // Parse and clean link to standard post URL
+  const getCleanLink = (link) => {
     if (!link) return null;
-
-    // Clean up Facebook link format
     let cleanLink = link;
-
-    // Handle format: /pageId/posts/pageId_postId -> /pageId/posts/postId
     const match = link.match(/\/posts\/(\d+)_(\d+)/);
     if (match) {
       const pageId = match[1];
       const postId = match[2];
       cleanLink = `https://www.facebook.com/${pageId}/posts/${postId}`;
     }
-
-    console.log('Cleaned FB link:', cleanLink);
-    return `https://www.facebook.com/plugins/post.php?href=${encodeURIComponent(cleanLink)}&width=500&show_text=true`;
+    return cleanLink;
   };
 
-  const embedUrl = getEmbedUrl(postLink);
-  console.log('Facebook embedUrl:', embedUrl);
+  const cleanLink = getCleanLink(postLink);
+
+  useEffect(() => {
+    // If the SDK is already on the window, just set it loaded
+    if (window.FB) {
+      setSdkLoaded(true);
+      return;
+    }
+
+    const scriptId = 'facebook-jssdk';
+    if (!document.getElementById(scriptId)) {
+      const script = document.createElement('script');
+      script.id = scriptId;
+      script.src = 'https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v18.0';
+      script.async = true;
+      script.defer = true;
+      script.crossOrigin = 'anonymous';
+      
+      script.onload = () => setSdkLoaded(true);
+      
+      script.onerror = () => {
+        console.error('Facebook SDK failed to load. CSP or network issue.');
+        setSdkError(true);
+      };
+
+      document.head.appendChild(script);
+    }
+  }, []);
+
+  // Re-run the Facebook parser whenever the SDK loads or the URL changes
+  useEffect(() => {
+    if (sdkLoaded && window.FB && cleanLink) {
+      setTimeout(() => {
+        if (window.FB.XFBML) {
+          window.FB.XFBML.parse();
+        }
+      }, 100);
+    }
+  }, [cleanLink, sdkLoaded]);
+
+  const FallbackCard = () => (
+    <div className="flex flex-col items-center justify-center border-2 border-gray-200 rounded-lg p-8 text-gray-400 mb-3 h-[500px] w-full">
+      <div className="w-12 h-12 mb-4 bg-blue-50 text-[#1877F2] rounded-full flex items-center justify-center">
+        <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+        </svg>
+      </div>
+      <h3 className="text-gray-800 font-semibold mb-2">Content Restricted</h3>
+      <p className="text-sm text-gray-500 text-center mb-6 max-w-[250px]">
+        This post couldn't be embedded. It might be private, deleted, or blocked.
+      </p>
+      <a 
+        href={postLink} 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="px-4 py-2 bg-[#1877F2] text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+      >
+        View on Facebook
+      </a>
+    </div>
+  );
 
   return (
     <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 flex flex-col h-full">
@@ -51,21 +108,21 @@ const FacebookComments = ({ comments, postLink }) => {
 
           {/* Left: Embedded Facebook Post */}
           <div className="flex flex-col">
-            {embedUrl ? (
+            {cleanLink ? (
               <div className="flex flex-col gap-2">
-                <div className="rounded-lg overflow-hidden border-2 border-[#1877F2] mb-3 bg-white">
-                  <iframe
-                    key={postLink}
-                    src={embedUrl}
-                    width="100%"
-                    height="500"
-                    style={{ border: 'none', overflow: 'hidden', background: 'white' }}
-                    scrolling="no"
-                    frameBorder="0"
-                    allowFullScreen={true}
-                    allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-                  ></iframe>
-                </div>
+                {sdkError ? (
+                  <FallbackCard />
+                ) : (
+                  <div className="rounded-lg overflow-hidden border-2 border-[#1877F2] mb-3 bg-white min-h-[300px] flex justify-center w-full relative">
+                    <div 
+                      key={cleanLink}
+                      className="fb-post w-full flex justify-center" 
+                      data-href={cleanLink} 
+                      data-width="auto"
+                      data-show-text="true"
+                    ></div>
+                  </div>
+                )}
                 <a
                   href={postLink}
                   target="_blank"
