@@ -43,12 +43,11 @@ class SecurityHeadersMiddleware:
                 # ✅ Your unified CSP (Facebook fully supported)
                 csp = (
     "default-src 'self' "
-    "https://www.facebook.com https://connect.facebook.net; "
+    "https://www.facebook.com https://*.facebook.com "
+    "https://connect.facebook.net https://*.fbcdn.net; "
     
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' "
     "https://connect.facebook.net https://www.facebook.com https://*.fbcdn.net; "
-    
-    "style-src 'self' 'unsafe-inline'; "
     
     "frame-src 'self' "
     "https://www.facebook.com https://*.facebook.com; "
@@ -61,8 +60,10 @@ class SecurityHeadersMiddleware:
     "connect-src 'self' "
     "https://www.facebook.com https://connect.facebook.net; "
     
+    "style-src 'self' 'unsafe-inline'; "
+    
     "object-src 'none'; "
-    "base-uri 'self'; "
+    "base-uri 'self';"
 )
 
                 # ✅ SET ONLY ONE CSP HEADER
