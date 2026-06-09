@@ -122,7 +122,7 @@ from fastapi.responses import HTMLResponse
 
 # ✅ Python-based Reverse Proxy for Facebook
 # This safely bypasses Nginx 502 errors on Snowflake and manually strips Facebook's security headers.
-@app.get("/api/fb-proxy")
+@app.get("/fb-proxy")
 async def fb_proxy(href: str):
     try:
         # Construct the target Facebook Embed URL
@@ -134,6 +134,14 @@ async def fb_proxy(href: str):
         # Fetch the content directly
         with urllib.request.urlopen(req) as response:
             html = response.read().decode('utf-8')
+            
+        # ✅ FIX FOR requireLazy error:
+        # Facebook's HTML contains relative script paths (like src="/...").
+        # Because we are proxying it on your domain, the browser tries to find those scripts 
+        # on your Snowflake domain and fails (returning 404), which breaks Facebook's javascript.
+        # Injecting the <base> tag forces the browser to load all assets directly from Facebook!
+        if "<head>" in html:
+            html = html.replace("<head>", '<head><base href="https://www.facebook.com/" />', 1)
             
         # Return only the raw HTML. 
         # This completely strips Facebook's X-Frame-Options and CSP headers!
