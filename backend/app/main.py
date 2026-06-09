@@ -114,3 +114,29 @@ app.include_router(etl_router)
 @app.get("/health")
 async def health():
     return {"status": "ok"}
+
+
+import urllib.request
+import urllib.parse
+from fastapi.responses import HTMLResponse
+
+# ✅ Python-based Reverse Proxy for Facebook
+# This safely bypasses Nginx 502 errors on Snowflake and manually strips Facebook's security headers.
+@app.get("/api/fb-proxy")
+async def fb_proxy(href: str):
+    try:
+        # Construct the target Facebook Embed URL
+        url = f"https://www.facebook.com/plugins/post.php?href={href}&width=500&show_text=true"
+        
+        # Spoof a standard browser User-Agent
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
+        
+        # Fetch the content directly
+        with urllib.request.urlopen(req) as response:
+            html = response.read().decode('utf-8')
+            
+        # Return only the raw HTML. 
+        # This completely strips Facebook's X-Frame-Options and CSP headers!
+        return HTMLResponse(content=html, status_code=200)
+    except Exception as e:
+        return HTMLResponse(content=f"Error proxying Facebook: {str(e)}", status_code=502)

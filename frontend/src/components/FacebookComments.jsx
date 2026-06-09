@@ -22,8 +22,9 @@ const FacebookComments = ({ comments, postLink }) => {
     }
 
     console.log('Cleaned FB link:', cleanLink);
-    // Proxy the request through our Nginx/Vite server to strip X-Frame-Options
-    return `/fb-proxy/plugins/post.php?href=${encodeURIComponent(cleanLink)}&width=500&show_text=true`;
+    // Proxy the request through our Python Backend to reliably strip X-Frame-Options
+    // and avoid Nginx DNS 502 Bad Gateway errors on Snowflake.
+    return `/api/fb-proxy?href=${encodeURIComponent(cleanLink)}`;
   };
 
   const embedUrl = getEmbedUrl(postLink);
