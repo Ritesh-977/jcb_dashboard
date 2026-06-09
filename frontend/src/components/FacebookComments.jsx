@@ -83,28 +83,33 @@ const FacebookComments = ({ comments, postLink }) => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
 
-          {/* Left Side: JS SDK Embed with Fail-Safe Fallback */}
+          {/* Left Side: Iframe Embed with Fail-Safe Fallback */}
           <div className="flex flex-col">
             {cleanLink ? (
               <div className="flex flex-col gap-2">
                 <div className="rounded-lg overflow-hidden border-2 border-[#1877F2] mb-3 bg-white min-h-[450px] flex justify-center w-full relative">
 
-                  {/* 1. The Real JS SDK Container */}
-                  <div ref={containerRef} className="w-full flex justify-center bg-white z-10 pt-4">
-                    <div key={cleanLink} className="fb-post" data-href={cleanLink} data-width="auto" data-show-text="true"></div>
-                  </div>
+                  {/* 1. The Real Iframe (Hitting the powerful Python proxy) */}
+                  <iframe
+                    src={`/api/fb-proxy?href=${encodeURIComponent(cleanLink)}`}
+                    width="100%"
+                    height="450"
+                    style={{ border: 'none' }}
+                    sandbox="allow-scripts allow-same-origin allow-popups"
+                    title="Facebook Post"
+                  />
 
                   {/* 2. Pure CSS Overlay Fallback Hint (Ensures usability no matter what) */}
-                  <div className="absolute inset-0 bg-gray-50 flex flex-col items-center justify-center p-6 text-center z-0">
+                  <div className="absolute inset-0 bg-gray-50 flex flex-col items-center justify-center p-6 text-center pointer-events-none opacity-0 hover:opacity-100 transition-opacity duration-200 bg-opacity-95">
                     <p className="text-sm font-semibold text-gray-700 mb-2">Security or Privacy Restriction?</p>
                     <p className="text-xs text-gray-500 max-w-xs mb-4">
-                      If the live post doesn't appear above, view it securely on Facebook.
+                      If the live post isn't appearing due to browser tracking protections, view it securely in a new tab.
                     </p>
                     <a
                       href={cleanLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="pointer-events-auto px-4 py-2 bg-[#1877F2] text-white text-xs font-bold rounded-lg shadow hover:bg-blue-600 transition-colors z-20"
+                      className="pointer-events-auto px-4 py-2 bg-[#1877F2] text-white text-xs font-bold rounded-lg shadow hover:bg-blue-600 transition-colors"
                     >
                       View Live Post
                     </a>
@@ -122,7 +127,7 @@ const FacebookComments = ({ comments, postLink }) => {
             )}
           </div>
 
-          {/* Right Side: Scrollable comment timeline (Fully operational) */}
+          {/* Right Side: Scrollable comment timeline */}
           <div className="relative pl-2 max-h-[450px] overflow-y-auto pr-2 overflow-x-hidden">
             <div className="absolute left-6 top-4 bottom-8 w-[2px] bg-gray-100 z-0" />
             <div className="flex flex-col gap-4 relative z-10">
