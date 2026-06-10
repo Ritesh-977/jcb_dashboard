@@ -122,29 +122,36 @@ from fastapi.responses import HTMLResponse
 
 # ✅ Python-based Reverse Proxy for Facebook
 # This safely bypasses Nginx 502 errors on Snowflake and manually strips Facebook's security headers.
+import re
+
 @app.get("/fb-proxy")
 async def fb_proxy(href: str):
     try:
-        # Construct the target Facebook Embed URL
         url = f"https://www.facebook.com/plugins/post.php?href={href}&width=500&show_text=true"
-        
-        # Spoof a standard browser User-Agent
         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'})
         
-        # Fetch the content directly
         with urllib.request.urlopen(req) as response:
             html = response.read().decode('utf-8')
             
-        # ✅ FIX FOR requireLazy error:
-        # Facebook's HTML contains relative script paths (like src="/...").
-        # Because we are proxying it on your domain, the browser tries to find those scripts 
-        # on your Snowflake domain and fails (returning 404), which breaks Facebook's javascript.
-        # Injecting the <base> tag forces the browser to load all assets directly from Facebook!
+        # 1. Inject base tag for relative paths
         if "<head>" in html:
             html = html.replace("<head>", '<head><base href="https://www.facebook.com/" />', 1)
             
+        # 2. Strip CORS and SRI checks to prevent requireLazy crashes
+        html = re.sub(r'\s+crossorigin="anonymous"', '', html)
+        html = re.sub(r'\s+integrity="[^"]+"', '', html)
+        
+        # 3. Create a custom CSP header allowing Facebook
+        csp_header = (
+            "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://*.facebook.com https://*.fbcdn.net; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.facebook.com https://*.fbcdn.net; "
+            "img-src 'self' data: blob: https://*.facebook.com https://*.fbcdn.net; "
+            "frame-src 'self' https://*.facebook.com; "
+            "base-uri 'self' https://www.facebook.com; "
+        )
+            
         # Return only the raw HTML. 
         # This completely strips Facebook's X-Frame-Options and CSP headers!
-        return HTMLResponse(content=html, status_code=200)
+        return HTMLResponse(content=html, status_code=200, headers={"Content-Security-Policy": csp_header})
     except Exception as e:
         return HTMLResponse(content=f"Error proxying Facebook: {str(e)}", status_code=502)
