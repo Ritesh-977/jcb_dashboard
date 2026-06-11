@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import SocialPostPreview from './SocialPostPreview';
 
 const SENTIMENT_COLORS = {
   Positive: 'bg-[#4de79e] text-[#0b1d3d]',
@@ -13,7 +14,7 @@ const FacebookComments = ({ comments, postLink }) => {
   // Parse and clean link to standard post URL
   const getCleanLink = (link) => {
     if (!link) return null;
-    
+
     // Convert mobile Facebook links to standard desktop links. 
     // m.facebook.com strictly blocks iframes with X-Frame-Options: DENY!
     let cleanLink = link.replace('//m.facebook.com', '//www.facebook.com');
@@ -44,7 +45,7 @@ const FacebookComments = ({ comments, postLink }) => {
       script.async = true;
       script.defer = true;
       script.crossOrigin = 'anonymous';
-      
+
       script.onload = () => {
         setSdkLoaded(true);
       };
@@ -85,40 +86,11 @@ const FacebookComments = ({ comments, postLink }) => {
 
           {/* Left Side: JS SDK Embed */}
           <div className="flex flex-col">
-            {cleanLink ? (
-              <div className="flex flex-col gap-2 h-full">
-                {/* overflow-y-auto ensures users can scroll down to see tall images/videos */}
-                <div className="rounded-lg border-2 border-[#1877F2] mb-3 bg-white min-h-[450px] max-h-[550px] overflow-y-auto flex justify-center w-full relative">
-
-                  <div ref={containerRef} className="w-full flex justify-center bg-white z-10 pt-4 pb-4">
-                    <div key={cleanLink} className="fb-post" data-href={cleanLink} data-width="auto" data-show-text="true"></div>
-                  </div>
-
-                  <div className="absolute inset-0 bg-gray-50 flex flex-col items-center justify-center p-6 text-center z-0">
-                    <p className="text-sm font-semibold text-gray-700 mb-2">Loading Post...</p>
-                    <p className="text-xs text-gray-500 max-w-xs mb-4">
-                      If the live post doesn't appear above, view it securely on Facebook.
-                    </p>
-                    <a
-                      href={cleanLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="pointer-events-auto px-4 py-2 bg-[#1877F2] text-white text-xs font-bold rounded-lg shadow hover:bg-blue-600 transition-colors z-20"
-                    >
-                      View Live Post
-                    </a>
-                  </div>
-
-                </div>
-                <a href={postLink} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline text-center">
-                  Open post in new tab →
-                </a>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center border-2 border-gray-200 rounded-lg p-8 text-gray-400 mb-3 h-[450px]">
-                <p className="text-sm font-medium">Select a Facebook post to view</p>
-              </div>
-            )}
+            <SocialPostPreview
+              platform="facebook"
+              postLink={postLink}
+              comments={comments}
+            />
           </div>
 
           {/* Right Side: Scrollable comment timeline */}
