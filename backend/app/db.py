@@ -2,6 +2,9 @@ import os
 import snowflake.connector
 from fastapi import HTTPException
 from contextlib import contextmanager
+from dotenv import load_dotenv
+
+load_dotenv()
 
 _session = None
 
