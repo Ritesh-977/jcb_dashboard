@@ -105,7 +105,14 @@ function buildFallbackInsights(kpiData, totalLikes, totalComments, totalShares, 
 
 
 // --- Frontend Cache for AI Insights ---
-const insightsCache = {};
+const getInsightsCache = (key) => {
+  try { return JSON.parse(sessionStorage.getItem(`ai_insights_${key}`)); }
+  catch (e) { return null; }
+};
+const setInsightsCache = (key, data) => {
+  try { sessionStorage.setItem(`ai_insights_${key}`, JSON.stringify(data)); }
+  catch (e) {}
+};
 
 const CampaignInsights = ({
   kpiData,
@@ -133,9 +140,10 @@ const CampaignInsights = ({
     prevParamsRef.current = paramsKey;
 
     // 1. Check frontend cache first for instant loading
-    if (insightsCache[paramsKey]) {
-      setInsights(insightsCache[paramsKey].insights);
-      setAiSource(insightsCache[paramsKey].source);
+    const cached = getInsightsCache(paramsKey);
+    if (cached) {
+      setInsights(cached.insights);
+      setAiSource(cached.source);
       setAiLoading(false);
       return;
     }
@@ -166,13 +174,13 @@ const CampaignInsights = ({
         if (data.source === 'cortex' && data.insights) {
           setInsights(data.insights);
           setAiSource('cortex');
-          insightsCache[paramsKey] = { source: 'cortex', insights: data.insights };
+          setInsightsCache(paramsKey, { source: 'cortex', insights: data.insights });
         } else {
           // Cortex returned an error (e.g. running locally without Snowflake access)
           const fallback = buildFallbackInsights(kpiData, totalLikes, totalComments, totalShares, totalInteractions);
           setInsights(fallback);
           setAiSource('fallback');
-          insightsCache[paramsKey] = { source: 'fallback', insights: fallback };
+          setInsightsCache(paramsKey, { source: 'fallback', insights: fallback });
         }
       } catch (err) {
         if (!cancelled) {
@@ -180,7 +188,7 @@ const CampaignInsights = ({
           const fallback = buildFallbackInsights(kpiData, totalLikes, totalComments, totalShares, totalInteractions);
           setInsights(fallback);
           setAiSource('fallback');
-          insightsCache[paramsKey] = { source: 'fallback', insights: fallback };
+          setInsightsCache(paramsKey, { source: 'fallback', insights: fallback });
         }
       } finally {
         if (!cancelled) setAiLoading(false);

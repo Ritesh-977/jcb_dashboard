@@ -16,7 +16,7 @@ router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
 # --- Cortex-specific cache (longer TTL — LLM calls are expensive) ---
 _insights_cache = {}
-INSIGHTS_TTL = 300  # 5 minutes
+INSIGHTS_TTL = 604800  # 7 days
 
 
 def _insights_cache_key(*args):
