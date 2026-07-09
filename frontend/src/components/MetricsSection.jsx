@@ -10,7 +10,8 @@ const MetricCard = ({ value, label, valueColor = 'text-[#2bb5e8]' }) => (
 const MetricsSection = ({ kpiData, sentimentData, totalShares = 0, totalLikes = 0, totalComments = 0 }) => {
   const get = (metric) => kpiData.find((k) => k.Metric === metric)?.Value ?? 0;
 
-  const netSentiment = `${Math.round(get('Net Sentiment %') * 100)}%`;
+  const rawNetSentiment = Math.round(get('Net Sentiment %') * 100);
+  const netSentimentDisplay = rawNetSentiment > 0 ? `+${rawNetSentiment}%` : `${rawNetSentiment}%`;
   const positivePct = `${Math.round(get('Positive %') * 100)}%`;
   const negativePct = `${Math.round(get('Negative %') * 100)}%`;
 
@@ -31,7 +32,7 @@ const MetricsSection = ({ kpiData, sentimentData, totalShares = 0, totalLikes = 
           <MetricCard value={totalLikes.toLocaleString()} label="Total Likes" />
           <MetricCard value={totalComments.toLocaleString()} label="Total Comments" />
           <MetricCard value={totalShares.toLocaleString()} label="Shares" />
-          <MetricCard value={`+${netSentiment}`} label="Net Sentiment" valueColor="text-white" />
+          <MetricCard value={netSentimentDisplay} label="Net Sentiment" valueColor="text-white" />
           <div className="flex flex-col gap-3 min-h-[120px]">
             <div className="bg-[#0b1d3d] rounded-lg p-3 text-white flex-1 flex flex-col justify-center">
               <div className="text-lg font-bold text-[#2bb5e8] leading-tight">{positivePct}</div>

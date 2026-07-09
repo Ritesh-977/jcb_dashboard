@@ -10,6 +10,8 @@ import { useMarket } from '../context/MarketContext';
 import { useCampaign } from '../context/CampaignContext';
 import { useDateFilter } from '../hooks/useDateFilter';
 
+import CampaignInsights from '../components/CampaignInsights';
+
 export default function Dashboard() {
   const today = new Date();
   const [chartData, setChartData] = useState([]);
@@ -203,6 +205,12 @@ export default function Dashboard() {
             )}
           </div>
         </div>
+
+        {!(chartData.length === 0 && (dateFrom || dateTo)) && (
+          <div className="mt-4 md:mt-6">
+            <CampaignInsights kpiData={kpiData} totalLikes={totalLikes} totalComments={totalComments} totalShares={totalShares} totalInteractions={totalInteractions} market={market} campaign={campaign} dateFrom={dateFrom} dateTo={dateTo} />
+          </div>
+        )}
       </div>
     </div>
   );

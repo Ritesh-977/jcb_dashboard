@@ -9,6 +9,7 @@ from app.routes.comments import router as comments_router
 from app.routes.dashboard import router as dashboard_router
 from app.routes.admin import router as admin_router
 from app.routes.etl import router as etl_router
+from app.routes.insights import router as insights_router
 
 
 # ✅ Lifespan
@@ -108,6 +109,7 @@ app.include_router(comments_router)
 app.include_router(dashboard_router)
 app.include_router(admin_router)
 app.include_router(etl_router)
+app.include_router(insights_router)
 
 
 # ✅ Health check
