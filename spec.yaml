@@ -2,6 +2,9 @@ spec:
   containers:
     - name: api-backend
       image: /MY_DASHBOARD/PUBLIC/my-repo/api-backend:v1.0
+      volumeMounts:
+        - name: uploads-volume
+          mountPath: /app/uploads
       readinessProbe:
         port: 8000
         path: /health
@@ -32,3 +35,7 @@ spec:
   ingress:
     auth:
       type: none
+
+  volumes:
+    - name: uploads-volume
+      source: "@my_dashboard_db.public.dashboard_uploads_stage"

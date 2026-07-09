@@ -52,7 +52,7 @@ INSIGHT DEFINITIONS:
 Write naturally like a human analyst. Be specific with data, never generic."""
 
 
-CORTEX_MODELS = ["mistral-large2", "llama3.1-8b"]
+CORTEX_MODELS = ["llama3.1-8b", "mistral-large2"]
 
 
 def _build_metrics_payload(
