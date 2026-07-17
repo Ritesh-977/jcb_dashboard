@@ -106,11 +106,11 @@ function buildFallbackInsights(kpiData, totalLikes, totalComments, totalShares, 
 
 // --- Frontend Cache for AI Insights ---
 const getInsightsCache = (key) => {
-  try { return JSON.parse(sessionStorage.getItem(`ai_insights_${key}`)); }
+  try { return JSON.parse(localStorage.getItem(`ai_insights_${key}`)); }
   catch (e) { return null; }
 };
 const setInsightsCache = (key, data) => {
-  try { sessionStorage.setItem(`ai_insights_${key}`, JSON.stringify(data)); }
+  try { localStorage.setItem(`ai_insights_${key}`, JSON.stringify(data)); }
   catch (e) {}
 };
 
